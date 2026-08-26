@@ -1,4 +1,4 @@
-import 'package:ecosync/features/scan/scan_screen.dart';
+import 'package:pilahin/features/scan/scan_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -6,16 +6,16 @@ import 'package:google_fonts/google_fonts.dart';
 import 'features/home/home_dashboard.dart'; 
 
 void main() {
-  runApp(const EcoSyncApp());
+  runApp(const PilahInApp());
 }
 
-class EcoSyncApp extends StatelessWidget {
-  const EcoSyncApp({super.key});
+class PilahInApp extends StatelessWidget {
+  const PilahInApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'EcoSync AI',
+      title: 'pilah.in',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

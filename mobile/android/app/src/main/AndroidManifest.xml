@@ -2,7 +2,7 @@
 <uses-permission android:name="android.permission.CAMERA" />
 <uses-feature android:name="android.hardware.camera" />
     <application
-        android:label="ecosync"
+        android:label="pilah.in"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

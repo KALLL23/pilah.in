@@ -17,7 +17,7 @@ class HomeDashboard extends StatelessWidget {
         backgroundColor: backgroundColor,
         elevation: 0,
         title: const Text(
-          'EcoSync AI',
+          'pilah.in',
           style: TextStyle(
             color: primaryGreen,
             fontWeight: FontWeight.bold,

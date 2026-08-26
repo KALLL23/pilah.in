@@ -6,8 +6,8 @@ import time
 
 # Inisialisasi Aplikasi
 app = FastAPI(
-    title="EcoSync AI API",
-    description="Backend API untuk memproses identifikasi gambar sampah dan skor sirkularitas.",
+    title="pilah.in API",
+    description="Backend API untuk layanan pilah.in.",
     version="1.0.0"
 )
 
@@ -23,7 +23,7 @@ app.add_middleware(
 # Endpoint 1: Pengecekan Status Server
 @app.get("/api/health")
 def health_check():
-    return {"status": "success", "message": "EcoSync API is running perfectly."}
+    return {"status": "success", "message": "pilah.in API is running."}
 
 # Endpoint 2: Analisis Gambar (Fitur Utama)
 @app.post("/api/scan/analyze")
@@ -80,4 +80,4 @@ async def analyze_waste(image: UploadFile = File(...)):
 
 # Menjalankan server secara otomatis jika file dieksekusi langsung
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
