@@ -1,5 +1,20 @@
-# Runtime dependencies currently used by backend/app/main.py.
-# Add packages only when their corresponding feature is introduced.
-fastapi>=0.115,<1.0
-uvicorn[standard]>=0.30,<1.0
-python-multipart>=0.0.9,<1.0
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+asyncpg
+alembic
+geoalchemy2
+pydantic
+pydantic-settings
+pyjwt
+pwdlib
+argon2-cffi
+ultralytics
+pillow
+python-multipart
+boto3
+httpx
+shapely
+pytest
+pytest-asyncio
