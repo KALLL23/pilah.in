@@ -47,10 +47,10 @@ def test_all_foreign_keys_define_delete_behavior() -> None:
 
 def test_ai_taxonomy_matches_database_seed() -> None:
     repository_root = Path(__file__).resolve().parents[2]
-    mapping = (repository_root / "backend/ai/training/mapping.yaml").read_text(encoding="utf-8")
+    training_config = (repository_root / "training/classification/configs/pilah_cls_v0.1.yaml").read_text(encoding="utf-8")
     migration = (repository_root / "backend/migrations/versions/20260827_0001_initial_schema.py").read_text(encoding="utf-8")
-    taxonomy_block = mapping.split("mappings:", maxsplit=1)[0]
-    training_codes = set(re.findall(r"^  - ([A-Z_]+)$", taxonomy_block, flags=re.MULTILINE))
+    taxonomy_block = training_config.split("  sources:", maxsplit=1)[0]
+    training_codes = {code.upper() for code in re.findall(r"^    - ([a-z_]+)$", taxonomy_block, flags=re.MULTILINE)}
     seeded_codes = set(re.findall(r"\(\d+, '([A-Z_]+)'", migration))
     assert training_codes == EXPECTED_TAXONOMY
     assert seeded_codes == EXPECTED_TAXONOMY

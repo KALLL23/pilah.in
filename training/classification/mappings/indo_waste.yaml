@@ -1,0 +1,9 @@
+# Exact labels found locally under backend/ai/raw_data/indo_waste.
+# Medical waste is deliberately excluded until pilah.in has a dedicated medical taxonomy.
+mappings:
+  sampah_cardboard: paper_cardboard
+  sampah_medis: EXCLUDE
+  sampah_metal: metal
+  sampah_organic: organic
+  sampah_paper: paper_cardboard
+  sampah_plastik: plastic

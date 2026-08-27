@@ -1,0 +1,48 @@
+dataset:
+  version: pilahin-dataset-v0.1
+  raw_root: backend/ai/raw_data
+  processed_root: data/processed/classification
+  taxonomy:
+    - plastic
+    - paper_cardboard
+    - glass
+    - metal
+    - organic
+    - textile
+    - electronic_special
+    - residual_mixed
+  sources:
+    - name: new_trash
+      directory: new-dataset-trash-type-v2
+      mapping: training/classification/mappings/new_trash.yaml
+    - name: garbage_classification
+      directory: garbage_classification
+      mapping: training/classification/mappings/garbage_classification.yaml
+    - name: indo_waste
+      directory: indo_waste
+      mapping: training/classification/mappings/indo_waste.yaml
+
+split:
+  train: 0.70
+  val: 0.15
+  test: 0.15
+  seed: 42
+
+model:
+  version: PILAH-CLS-v0.1.0
+  name: yolo26l-cls.pt
+  imgsz: 224
+  epochs: 50
+  batch: 16
+  device: 0
+  train:
+    pretrained: true
+    workers: 4
+    patience: 15
+    seed: 42
+    deterministic: true
+
+output:
+  runs_dir: runs/classification
+  production_model: models/waste_cls.pt
+  archive_dir: models/archive

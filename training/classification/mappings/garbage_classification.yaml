@@ -1,0 +1,14 @@
+# Exact labels found locally under backend/ai/raw_data/garbage_classification.
+mappings:
+  battery: electronic_special
+  biological: organic
+  brown-glass: glass
+  cardboard: paper_cardboard
+  clothes: textile
+  green-glass: glass
+  metal: metal
+  paper: paper_cardboard
+  plastic: plastic
+  shoes: textile
+  trash: residual_mixed
+  white-glass: glass

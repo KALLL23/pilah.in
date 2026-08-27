@@ -1,0 +1,11 @@
+# Exact labels found locally under backend/ai/raw_data/new-dataset-trash-type-v2.
+mappings:
+  cardboard: paper_cardboard
+  e-waste: electronic_special
+  glass: glass
+  metal: metal
+  organic: organic
+  paper: paper_cardboard
+  plastic: plastic
+  textile: textile
+  trash: residual_mixed
