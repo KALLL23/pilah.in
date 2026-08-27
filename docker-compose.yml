@@ -1,42 +1,97 @@
-version: '3.8'
-
 services:
   api:
-    build: 
+    build:
       context: ./backend
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${DATABASE_NAME:-pilahin}
+      DATABASE_USER: ${DATABASE_USER:-pilahin}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-pilahin-local-only}
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-pilahin-local}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-pilahin-local-secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-pilahin}
+      MINIO_SECURE: "false"
     ports:
-      - "8000:8000"
+      - "${APP_PORT:-8000}:8000"
     depends_on:
-      - postgres
-      - minio
-    env_file:
-      - .env
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
     volumes:
-      - ./models:/models
+      - ./models:/models:ro
 
   postgres:
-    # Menggunakan image PostGIS agar bisa memproses koordinat GPS Kota Semarang
-    image: postgis/postgis:15-3.3
+    image: postgis/postgis:15-3.4
+    command: ["postgres", "-c", "timezone=Asia/Jakarta"]
     environment:
-      POSTGRES_USER: ${DATABASE_USER}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER:-pilahin}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-pilahin-local-only}
+      POSTGRES_DB: ${DATABASE_NAME:-pilahin}
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
+      PGTZ: ${APP_TIMEZONE:-Asia/Jakarta}
     ports:
-      - "5432:5432"
+      - "${DATABASE_PORT_FORWARD:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   minio:
-    image: minio/minio
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-pilahin-local}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-pilahin-local-secret}
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
     ports:
-      - "9000:9000"  # MinIO API Port
-      - "9001:9001"  # MinIO UI Port
+      - "${MINIO_PORT_FORWARD:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT_FORWARD:-9001}:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
     volumes:
       - minio_data:/data
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - >-
+        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" &&
+        mc mb --ignore-existing "local/$${MINIO_BUCKET}"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-pilahin-local}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-pilahin-local-secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-pilahin}
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: "no"
 
 volumes:
   postgres_data:
