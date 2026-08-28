@@ -2,7 +2,7 @@
 
 pilah.in is a mobile waste-management assistant for Kota Semarang. It combines waste identification, actionable handling recommendations, facility discovery, community reporting, geospatial risk prioritisation, and map-based monitoring.
 
-The project is in its foundation stage. The repository includes a versioned PostgreSQL/PostGIS schema and local Docker infrastructure; the production feature set has not yet been implemented.
+The project is under active development. The repository includes the PostgreSQL/PostGIS schema, Docker infrastructure, YOLO classification pipeline, Scan Waste backend, and grounded LLM recommendation engine.
 
 ## Repository layout
 
@@ -51,7 +51,7 @@ docker compose up --build
 
 Local development defaults work without `.env`, but must never be used for a deployed environment.
 
-### Backend prototype without Docker
+### Backend without Docker
 
 ```bash
 cd backend
@@ -78,8 +78,21 @@ The initial migration covers identity and refresh tokens, waste scans and ground
 
 PostgreSQL uses `timestamptz` and its session timezone is `Asia/Jakarta` (UTC+7). PostgreSQL still stores instants consistently; API and database output are presented in Western Indonesian Time.
 
-The existing backend endpoint is a temporary prototype and will be replaced in stages with the API contract defined in the engineering blueprint.
+The Scan Waste backend currently provides:
+
+```text
+POST  /api/v1/scans/infer
+PATCH /api/v1/scans/{id}/confirm
+POST  /api/v1/scans/{id}/recommend
+GET   /api/v1/scans
+GET   /api/v1/scans/{id}
+GET   /api/v1/categories
+```
+
+Inference accepts JPEG, PNG, or WEBP images up to 8 MB. Images are stored in the private MinIO bucket and API responses contain a presigned URL valid for 15 minutes.
 
 ## Configuration
 
 Copy `.env.example` to `.env` before introducing services that require configuration. Fill in secrets only in `.env`; it is ignored by Git.
+
+Set `MINIO_PUBLIC_ENDPOINT` to the laptop's LAN address (for example `192.168.1.10:9000`) when the Flutter application runs on a phone. MinIO uses `MINIO_ENDPOINT=minio:9000` internally, while presigned URLs use the public endpoint.
