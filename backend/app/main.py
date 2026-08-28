@@ -15,8 +15,10 @@ from app.services.storage import get_object_storage
 async def lifespan(application: FastAPI):
     classifier = WasteClassifier(get_settings())
     await classifier.load()
+    storage = get_object_storage()
+    await storage.check_ready()
     application.state.waste_classifier = classifier
-    application.state.object_storage = get_object_storage()
+    application.state.object_storage = storage
     yield
 
 

@@ -96,3 +96,32 @@ Inference accepts JPEG, PNG, or WEBP images up to 8 MB. Images are stored in the
 Copy `.env.example` to `.env` before introducing services that require configuration. Fill in secrets only in `.env`; it is ignored by Git.
 
 Set `MINIO_PUBLIC_ENDPOINT` to the laptop's LAN address (for example `192.168.1.10:9000`) when the Flutter application runs on a phone. MinIO uses `MINIO_ENDPOINT=minio:9000` internally, while presigned URLs use the public endpoint.
+
+## MinIO setup and verification
+
+Copy the environment template and replace the example LAN address with the laptop's current address:
+
+```powershell
+copy .env.example .env
+# edit MINIO_PUBLIC_ENDPOINT=<LAPTOP_LAN_IP>:9000
+docker compose up -d minio minio-init
+```
+
+The bootstrap creates the `pilahin` bucket idempotently and explicitly keeps anonymous access disabled. The MinIO console is available at `http://localhost:9001`; object API traffic uses port `9000`.
+
+Run the storage smoke test from the host after MinIO is healthy:
+
+```powershell
+cd backend
+python -m app.scripts.check_minio
+```
+
+For a non-default forwarded port:
+
+```powershell
+python -m app.scripts.check_minio --endpoint localhost:9100 --public-endpoint localhost:9100
+```
+
+The command verifies bucket readiness, object upload, rejection of unsigned access, presigned download, and cleanup. It never leaves the smoke-test object in the bucket.
+
+Flutter must treat `image_url` returned by the API as opaque: do not construct MinIO paths and never put MinIO credentials in the mobile application. When a URL expires, fetch the scan detail again to receive a new URL. The phone and laptop must be on a mutually reachable network, and the laptop firewall must allow ports `8000` and `9000`. Android/iOS development builds must also permit plain HTTP for the configured private-LAN server.

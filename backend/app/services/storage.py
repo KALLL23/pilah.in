@@ -52,6 +52,13 @@ class ObjectStorage:
         except (BotoCoreError, ClientError) as error:
             raise StorageError("Image upload failed") from error
 
+    async def check_ready(self) -> None:
+        """Verify that the configured private bucket is reachable."""
+        try:
+            await asyncio.to_thread(self.client.head_bucket, Bucket=self.bucket)
+        except (BotoCoreError, ClientError) as error:
+            raise StorageError("MinIO bucket is not ready") from error
+
     async def delete(self, key: str) -> None:
         try:
             await asyncio.to_thread(self.client.delete_object, Bucket=self.bucket, Key=key)
