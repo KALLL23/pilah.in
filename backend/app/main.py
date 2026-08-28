@@ -4,12 +4,17 @@ import uvicorn
 import random
 import time
 
+from app.api.errors import ApiError, api_error_handler
+from app.api.v1.scans import router as scans_router
+
 # Inisialisasi Aplikasi
 app = FastAPI(
     title="pilah.in API",
     description="Backend API untuk layanan pilah.in.",
     version="1.0.0"
 )
+app.add_exception_handler(ApiError, api_error_handler)
+app.include_router(scans_router)
 
 # Konfigurasi CORS agar aplikasi (atau web) bisa mengakses API tanpa diblokir
 app.add_middleware(

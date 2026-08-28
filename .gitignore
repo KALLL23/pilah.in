@@ -27,6 +27,7 @@ env/
 
 # Local AI datasets and generated training artefacts
 /backend/ai/raw_data/
+/backend/tests/
 /data/raw/
 /data/processed/
 /runs/
