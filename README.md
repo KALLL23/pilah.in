@@ -125,3 +125,19 @@ python -m app.scripts.check_minio --endpoint localhost:9100 --public-endpoint lo
 The command verifies bucket readiness, object upload, rejection of unsigned access, presigned download, and cleanup. It never leaves the smoke-test object in the bucket.
 
 Flutter must treat `image_url` returned by the API as opaque: do not construct MinIO paths and never put MinIO credentials in the mobile application. When a URL expires, fetch the scan detail again to receive a new URL. The phone and laptop must be on a mutually reachable network, and the laptop firewall must allow ports `8000` and `9000`. Android/iOS development builds must also permit plain HTTP for the configured private-LAN server.
+
+## Authentication
+
+The backend exposes the complete email/password JWT flow:
+
+```text
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+POST /api/v1/auth/refresh
+POST /api/v1/auth/logout
+GET  /api/v1/auth/me
+```
+
+Registration always creates a `USER`; clients cannot submit or select a role. The only supported roles are `USER` and `ADMIN`. The initial `ADMIN` is created idempotently from `ADMIN_EMAIL` and `ADMIN_PASSWORD` during container startup.
+
+Set a unique `JWT_SECRET` containing at least 32 characters. Access tokens expire after 30 minutes and refresh tokens after 30 days by default. Refresh tokens are rotated on every refresh, stored only as SHA-256 hashes, and may be revoked through logout. Flutter should keep both tokens in secure storage, use only the access token in the `Authorization: Bearer` header, and replace both stored tokens after a successful refresh.

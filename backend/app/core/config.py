@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     database_user: str = "pilahin"
     database_password: str = Field(default="pilahin-local-only", min_length=8)
     jwt_secret: SecretStr | None = None
+    access_token_minutes: int = Field(default=30, ge=1, le=1440)
+    refresh_token_days: int = Field(default=30, ge=1, le=365)
+    admin_email: str | None = None
+    admin_password: SecretStr | None = None
     minio_endpoint: str = "minio:9000"
     minio_public_endpoint: str | None = None
     minio_access_key: SecretStr = SecretStr("pilahin-local")
@@ -36,7 +40,15 @@ class Settings(BaseSettings):
     llm_temperature: float = Field(default=0.2, ge=0, le=2)
     llm_prompt_version: str = Field(default="v1", min_length=1, max_length=40)
 
-    @field_validator("jwt_secret", "llm_api_key", "llm_model", "minio_public_endpoint", mode="before")
+    @field_validator(
+        "jwt_secret",
+        "admin_email",
+        "admin_password",
+        "llm_api_key",
+        "llm_model",
+        "minio_public_endpoint",
+        mode="before",
+    )
     @classmethod
     def empty_string_is_unset(cls, value: object) -> object:
         return None if value == "" else value

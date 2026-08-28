@@ -24,6 +24,10 @@ def run_migrations_online() -> None:
     connectable = engine_from_config(config.get_section(config.config_ini_section, {}), prefix="sqlalchemy.", poolclass=pool.NullPool)
     with connectable.connect() as connection:
         connection.execute(__import__("sqlalchemy").text("SET TIME ZONE 'Asia/Jakarta'"))
+        # SQLAlchemy 2 starts an implicit transaction for the SET statement.
+        # Commit it first so Alembic owns and commits the migration transaction
+        # instead of having the connection context roll the schema back on exit.
+        connection.commit()
         context.configure(connection=connection, target_metadata=target_metadata, compare_type=True, compare_server_default=True)
         with context.begin_transaction():
             context.run_migrations()
