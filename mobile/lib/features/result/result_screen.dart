@@ -17,7 +17,7 @@ class ResultScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: primaryGreen),
-          onTap: () => Navigator.pop(context), // Kembali ke dashboard
+          onPressed: () => Navigator.pop(context), // Kembali ke dashboard
         ),
         title: const Text(
           'Scan Result',
