@@ -4,6 +4,8 @@ import uvicorn
 import random
 import time
 
+from app.api.auth import router as auth_router
+
 # Inisialisasi Aplikasi
 app = FastAPI(
     title="pilah.in API",
@@ -19,6 +21,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
 
 # Endpoint 1: Pengecekan Status Server
 @app.get("/api/health")

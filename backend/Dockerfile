@@ -13,7 +13,8 @@ RUN apt-get update \
 COPY requirements.txt .
 RUN python -m pip install --no-cache-dir --upgrade pip==25.1.1 \
     && python -m pip install --no-cache-dir torch==2.7.0 torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cpu \
-    && python -m pip install --no-cache-dir -r requirements.txt
+    && python -m pip install --no-cache-dir -r requirements.txt \
+    && python -m pip install --no-cache-dir --upgrade "typing_extensions>=4.10.0"
 
 COPY . .
 
