@@ -2,7 +2,7 @@
 
 pilah.in is a mobile waste-management assistant for Kota Semarang. It combines waste identification, actionable handling recommendations, facility discovery, community reporting, geospatial risk prioritisation, and map-based monitoring.
 
-The project is in its foundation stage. The repository includes a versioned PostgreSQL/PostGIS schema and local Docker infrastructure; the production feature set has not yet been implemented.
+The project is under active development. The repository includes the PostgreSQL/PostGIS schema, Docker infrastructure, YOLO classification pipeline, Scan Waste backend, and grounded LLM recommendation engine.
 
 ## Repository layout
 
@@ -51,7 +51,7 @@ docker compose up --build
 
 Local development defaults work without `.env`, but must never be used for a deployed environment.
 
-### Backend prototype without Docker
+### Backend without Docker
 
 ```bash
 cd backend
@@ -78,8 +78,66 @@ The initial migration covers identity and refresh tokens, waste scans and ground
 
 PostgreSQL uses `timestamptz` and its session timezone is `Asia/Jakarta` (UTC+7). PostgreSQL still stores instants consistently; API and database output are presented in Western Indonesian Time.
 
-The existing backend endpoint is a temporary prototype and will be replaced in stages with the API contract defined in the engineering blueprint.
+The Scan Waste backend currently provides:
+
+```text
+POST  /api/v1/scans/infer
+PATCH /api/v1/scans/{id}/confirm
+POST  /api/v1/scans/{id}/recommend
+GET   /api/v1/scans
+GET   /api/v1/scans/{id}
+GET   /api/v1/categories
+```
+
+Inference accepts JPEG, PNG, or WEBP images up to 8 MB. Images are stored in the private MinIO bucket and API responses contain a presigned URL valid for 15 minutes.
 
 ## Configuration
 
 Copy `.env.example` to `.env` before introducing services that require configuration. Fill in secrets only in `.env`; it is ignored by Git.
+
+Set `MINIO_PUBLIC_ENDPOINT` to the laptop's LAN address (for example `192.168.1.10:9000`) when the Flutter application runs on a phone. MinIO uses `MINIO_ENDPOINT=minio:9000` internally, while presigned URLs use the public endpoint.
+
+## MinIO setup and verification
+
+Copy the environment template and replace the example LAN address with the laptop's current address:
+
+```powershell
+copy .env.example .env
+# edit MINIO_PUBLIC_ENDPOINT=<LAPTOP_LAN_IP>:9000
+docker compose up -d minio minio-init
+```
+
+The bootstrap creates the `pilahin` bucket idempotently and explicitly keeps anonymous access disabled. The MinIO console is available at `http://localhost:9001`; object API traffic uses port `9000`.
+
+Run the storage smoke test from the host after MinIO is healthy:
+
+```powershell
+cd backend
+python -m app.scripts.check_minio
+```
+
+For a non-default forwarded port:
+
+```powershell
+python -m app.scripts.check_minio --endpoint localhost:9100 --public-endpoint localhost:9100
+```
+
+The command verifies bucket readiness, object upload, rejection of unsigned access, presigned download, and cleanup. It never leaves the smoke-test object in the bucket.
+
+Flutter must treat `image_url` returned by the API as opaque: do not construct MinIO paths and never put MinIO credentials in the mobile application. When a URL expires, fetch the scan detail again to receive a new URL. The phone and laptop must be on a mutually reachable network, and the laptop firewall must allow ports `8000` and `9000`. Android/iOS development builds must also permit plain HTTP for the configured private-LAN server.
+
+## Authentication
+
+The backend exposes the complete email/password JWT flow:
+
+```text
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+POST /api/v1/auth/refresh
+POST /api/v1/auth/logout
+GET  /api/v1/auth/me
+```
+
+Registration always creates a `USER`; clients cannot submit or select a role. The only supported roles are `USER` and `ADMIN`. The initial `ADMIN` is created idempotently from `ADMIN_EMAIL` and `ADMIN_PASSWORD` during container startup.
+
+Set a unique `JWT_SECRET` containing at least 32 characters. Access tokens expire after 30 minutes and refresh tokens after 30 days by default. Refresh tokens are rotated on every refresh, stored only as SHA-256 hashes, and may be revoked through logout. Flutter should keep both tokens in secure storage, use only the access token in the `Authorization: Bearer` header, and replace both stored tokens after a successful refresh.
