@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from training.classification.src.splitter import LeakageError, assign_splits, validate_no_leakage
+from backend.ai.yolo_classification.src.splitter import LeakageError, assign_splits, validate_no_leakage
 
 
 def _records() -> list[dict[str, str]]:

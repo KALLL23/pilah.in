@@ -11,6 +11,7 @@ pilah.in/
 ├── mobile/                 # Flutter application
 ├── backend/
 │   ├── app/                # FastAPI application modules
+│   ├── ai/                 # LLM, YOLO classification, and YOLO detection
 │   ├── tests/              # Backend tests
 │   └── requirements.txt    # Backend runtime dependencies
 ├── data/
@@ -29,6 +30,17 @@ pilah.in/
 - **Deployment:** Docker Compose on a laptop/PC; the Flutter app connects over the local network.
 
 The operational scope is Kota Semarang, Jawa Tengah, Indonesia.
+
+## AI training
+
+All AI code is grouped under `backend/ai`: `llm`, `yolo_classification`, and `yolo_detection`. Both YOLO pipelines run from the repository root with one command:
+
+```powershell
+python -m backend.ai.yolo_classification.src.pipeline --config backend/ai/yolo_classification/configs/pilah_cls_v0.1.yaml
+python -m backend.ai.yolo_detection.src.pipeline --config backend/ai/yolo_detection/configs/pilah_det_v0.1.yaml
+```
+
+The detection pipeline reads `backend/ai/raw_data/SynWasteNet`, maps its ten source labels into the backend's eight-category contract, and trains `yolo26n.pt`. See `backend/ai/README.md` for the workspace overview and each pipeline README for setup and safe re-run options.
 
 ## Current local commands
 

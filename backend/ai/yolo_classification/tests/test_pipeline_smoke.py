@@ -2,8 +2,8 @@ from pathlib import Path
 
 from PIL import Image
 
-from training.classification.src.metadata import read_metadata
-from training.classification.src.pipeline import run_pipeline
+from backend.ai.yolo_classification.src.metadata import read_metadata
+from backend.ai.yolo_classification.src.pipeline import run_pipeline
 
 
 def test_offline_pipeline_smoke_without_training(tmp_path: Path) -> None:

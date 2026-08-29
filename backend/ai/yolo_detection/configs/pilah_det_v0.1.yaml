@@ -1,0 +1,66 @@
+dataset:
+  version: synwastenet-pilah-v0.1
+  raw_root: backend/ai/raw_data/SynWasteNet
+  processed_root: data/processed/detection
+  images_dir: images
+  labels_dir: labels
+  source_names:
+    - plastic
+    - paper
+    - cardboard
+    - metal
+    - glass
+    - organic
+    - battery
+    - e_waste
+    - cloth
+    - other_waste
+  class_mapping:
+    plastic: plastic
+    paper: paper_cardboard
+    cardboard: paper_cardboard
+    metal: metal
+    glass: glass
+    organic: organic
+    battery: electronic_special
+    e_waste: electronic_special
+    cloth: textile
+    other_waste: residual_mixed
+  taxonomy:
+    - plastic
+    - paper_cardboard
+    - glass
+    - metal
+    - organic
+    - textile
+    - electronic_special
+    - residual_mixed
+
+split:
+  train: 0.70
+  val: 0.15
+  test: 0.15
+  seed: 42
+
+model:
+  version: PILAH-DET-v0.1.0
+  name: yolo26n.pt
+  imgsz: 640
+  epochs: 100
+  batch: 8
+  device: 0
+  train:
+    pretrained: true
+    workers: 4
+    patience: 20
+    seed: 42
+    deterministic: true
+    cache: false
+  val:
+    conf: 0.001
+    iou: 0.6
+
+output:
+  runs_dir: runs/detection
+  production_model: models/waste_det.pt
+  archive_dir: models/archive

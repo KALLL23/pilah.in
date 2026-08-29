@@ -42,5 +42,5 @@ def apply_mappings(records: list[dict[str, Any]], sources: list[dict[str, Any]],
     if unknown:
         detail = "; ".join(f"{source}: {sorted(classes)}" for source, classes in sorted(unknown.items()))
         raise UnmappedClassError(
-            f"Unmapped source class detected — {detail}. Review training/classification/mappings/<source>.yaml."
+            f"Unmapped source class detected — {detail}. Review backend/ai/yolo_classification/mappings/<source>.yaml."
         )

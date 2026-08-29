@@ -34,7 +34,7 @@ env/
 /wandb/
 /mlruns/
 /weights/
-/yolo*-cls.pt
+/yolo*.pt
 /models/archive/
 *.onnx
 *.engine
