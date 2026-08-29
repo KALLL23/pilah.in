@@ -1,1 +1,1 @@
-"""AI components used by the backend."""
+"""LLM integration and reproducible YOLO training pipelines."""

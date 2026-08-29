@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from training.classification.src.trainer import TrainingError, _resolve_weight_reference
+from backend.ai.yolo_detection.src.trainer import TrainingError, _resolve_weight_reference
 
 
 def _config(tmp_path: Path, name: str) -> SimpleNamespace:
@@ -11,7 +11,7 @@ def _config(tmp_path: Path, name: str) -> SimpleNamespace:
 
 
 def test_official_weight_name_is_forwarded_for_automatic_download(tmp_path: Path) -> None:
-    assert _resolve_weight_reference(_config(tmp_path, "yolo26l-cls.pt")) == "yolo26l-cls.pt"
+    assert _resolve_weight_reference(_config(tmp_path, "yolo26n.pt")) == "yolo26n.pt"
 
 
 def test_missing_explicit_local_weight_fails(tmp_path: Path) -> None:

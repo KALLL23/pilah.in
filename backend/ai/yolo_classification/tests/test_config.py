@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from training.classification.src.config import ConfigError, load_config
+from backend.ai.yolo_classification.src.config import ConfigError, load_config
 
 
 def _write_config(path: Path, ratios: tuple[float, float, float] = (0.7, 0.15, 0.15)) -> None:

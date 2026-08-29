@@ -2,8 +2,8 @@ from pathlib import Path
 
 from PIL import Image
 
-from training.classification.src.duplicates import remove_exact_duplicates
-from training.classification.src.image_validation import validate_images
+from backend.ai.yolo_classification.src.duplicates import remove_exact_duplicates
+from backend.ai.yolo_classification.src.image_validation import validate_images
 
 
 def _record(path: Path, relative: str) -> dict[str, str]:

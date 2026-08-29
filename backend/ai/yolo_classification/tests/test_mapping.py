@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from training.classification.src.mapping import UnmappedClassError, apply_mappings
+from backend.ai.yolo_classification.src.mapping import UnmappedClassError, apply_mappings
 
 
 def test_mapping_and_exclude(tmp_path: Path) -> None:

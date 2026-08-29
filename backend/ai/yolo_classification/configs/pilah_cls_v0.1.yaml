@@ -14,13 +14,13 @@ dataset:
   sources:
     - name: new_trash
       directory: new-dataset-trash-type-v2
-      mapping: training/classification/mappings/new_trash.yaml
+      mapping: backend/ai/yolo_classification/mappings/new_trash.yaml
     - name: garbage_classification
       directory: garbage_classification
-      mapping: training/classification/mappings/garbage_classification.yaml
+      mapping: backend/ai/yolo_classification/mappings/garbage_classification.yaml
     - name: indo_waste
       directory: indo_waste
-      mapping: training/classification/mappings/indo_waste.yaml
+      mapping: backend/ai/yolo_classification/mappings/indo_waste.yaml
 
 split:
   train: 0.70

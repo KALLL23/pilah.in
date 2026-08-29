@@ -9,7 +9,7 @@ From the repository root:
 ```powershell
 python -m venv .venv
 .venv\Scripts\activate
-pip install -r training/classification/requirements.txt
+pip install -r backend/ai/yolo_classification/requirements.txt
 ```
 
 ## Raw dataset location
@@ -32,7 +32,7 @@ The three mapping files mirror the class directories currently present in those 
 The configured baseline is `yolo26l-cls.pt`. On first use, Ultralytics downloads this official classification weight automatically if it is not already available locally. Then run:
 
 ```powershell
-python -m training.classification.src.pipeline --config training/classification/configs/pilah_cls_v0.1.yaml
+python -m backend.ai.yolo_classification.src.pipeline --config backend/ai/yolo_classification/configs/pilah_cls_v0.1.yaml
 ```
 
 For a fully offline run, start the model once while online or place the exact weight in the repository root beforehand. The pipeline never substitutes a different model silently.
@@ -41,10 +41,10 @@ Useful safe re-run options:
 
 ```powershell
 # Prepare/export and report without training (also used for smoke tests)
-python -m training.classification.src.pipeline --config training/classification/configs/pilah_cls_v0.1.yaml --skip-training
+python -m backend.ai.yolo_classification.src.pipeline --config backend/ai/yolo_classification/configs/pilah_cls_v0.1.yaml --skip-training
 
 # Explicitly rebuild generated processed/run output; raw data is never removed
-python -m training.classification.src.pipeline --config training/classification/configs/pilah_cls_v0.1.yaml --force
+python -m backend.ai.yolo_classification.src.pipeline --config backend/ai/yolo_classification/configs/pilah_cls_v0.1.yaml --force
 ```
 
 ## Pipeline and outputs
@@ -80,5 +80,5 @@ By default, each image is its own `group_id` because the configured sources do n
 ## Tests
 
 ```powershell
-python -m pytest training/classification/tests -q
+python -m pytest backend/ai/yolo_classification/tests -q
 ```

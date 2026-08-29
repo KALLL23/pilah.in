@@ -47,7 +47,7 @@ def train(config: Any, dataset_root: Path) -> tuple[Path, float, int | None]:
     try:
         from ultralytics import YOLO
     except ImportError as exc:
-        raise TrainingError("Ultralytics is not installed; install training/classification/requirements.txt") from exc
+        raise TrainingError("Ultralytics is not installed; install backend/ai/yolo_classification/requirements.txt") from exc
     weight = _resolve_weight_reference(config)
     model_cfg = config.data["model"]
     train_cfg = dict(model_cfg.get("train", {}))
