@@ -8,12 +8,11 @@ void main() {
   runApp(const ProviderScope(child: PilahInApp()));
 }
 
-class PilahInApp extends StatelessWidget {
+class PilahInApp extends ConsumerWidget {
   const PilahInApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Gunakan MaterialApp.router agar go_router dapat mengambil alih navigasi
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
       title: 'pilah.in',
       debugShowCheckedModeBanner: false,
@@ -25,7 +24,7 @@ class PilahInApp extends StatelessWidget {
         textTheme: GoogleFonts.interTextTheme(Theme.of(context).textTheme),
         useMaterial3: true,
       ),
-      routerConfig: appRouter, 
+      routerConfig: ref.watch(appRouterProvider),
     );
   }
 }

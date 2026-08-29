@@ -24,9 +24,6 @@ async def lifespan(application: FastAPI):
     yield
 
 
-from app.api.auth import router as auth_router
-
-# Inisialisasi Aplikasi
 app = FastAPI(
     title="pilah.in API",
     description="Backend API untuk layanan pilah.in.",
@@ -47,10 +44,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_router)
-
-# Endpoint 1: Pengecekan Status Server
-@app.get("/api/health")
 
 @app.get("/health")
 @app.get("/api/health", include_in_schema=False)

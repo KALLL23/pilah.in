@@ -15,10 +15,6 @@ class Settings(BaseSettings):
     database_name: str = "pilahin"
     database_user: str = "pilahin"
     database_password: str = Field(default="pilahin-local-only", min_length=8)
-    jwt_secret_key: str = Field(default="pilahin-dev-secret-key-change-in-production", min_length=8)
-    jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_minutes: int = 60
-    jwt_refresh_token_expire_days: int = 30
     jwt_secret: SecretStr | None = None
     access_token_minutes: int = Field(default=30, ge=1, le=1440)
     refresh_token_days: int = Field(default=30, ge=1, le=365)

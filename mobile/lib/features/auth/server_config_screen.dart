@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 
-final secureStorageProvider = Provider((ref) => const FlutterSecureStorage());
-final dioProvider = Provider((ref) => Dio());
+import '../../core/providers/auth_provider.dart';
 
 class ServerConfigScreen extends ConsumerStatefulWidget {
   const ServerConfigScreen({super.key});
@@ -15,39 +12,64 @@ class ServerConfigScreen extends ConsumerStatefulWidget {
 }
 
 class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
-  // Input URL yang wajib ditanyakan pada first launch aplikasi[cite: 1]
-  final _urlController = TextEditingController(text: "http://192.168.1.10:8000");
+  final _urlController = TextEditingController(
+    text: 'http://192.168.1.10:8000',
+  );
   bool _isLoading = false;
-  String _statusMessage = "";
+  String _statusMessage = '';
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    super.dispose();
+  }
+
+  String? _normalizeServerUrl(String value) {
+    final normalized = value.trim().replaceFirst(RegExp(r'/+$'), '');
+    final uri = Uri.tryParse(normalized);
+    if (uri == null ||
+        !{'http', 'https'}.contains(uri.scheme) ||
+        uri.host.isEmpty) {
+      return null;
+    }
+    return normalized;
+  }
 
   Future<void> _testConnection() async {
     setState(() {
       _isLoading = true;
-      _statusMessage = "Menghubungkan...";
+      _statusMessage = 'Menghubungkan...';
     });
 
     final dio = ref.read(dioProvider);
-    final storage = ref.read(secureStorageProvider);
-    final serverUrl = _urlController.text.trim();
+    final serverUrl = _normalizeServerUrl(_urlController.text);
+    if (serverUrl == null) {
+      setState(() {
+        _isLoading = false;
+        _statusMessage = 'Masukkan URL server HTTP/HTTPS yang valid.';
+      });
+      return;
+    }
 
     try {
-      // Memanggil endpoint health check sesuai spesifikasi pilah.in[cite: 1]
-      final response = await dio.get('$serverUrl/api/health');
-      
+      final response = await dio.get('$serverUrl/health');
+
       if (response.statusCode == 200) {
-        // Menyimpan URL server ke penyimpanan aman lokal[cite: 1]
-        await storage.write(key: 'server_url', value: serverUrl);
-        
+        await ref
+            .read(authSessionProvider.notifier)
+            .configureServer(serverUrl);
+        if (!mounted) return;
         setState(() {
-          _statusMessage = "Koneksi Berhasil!";
+          _statusMessage = 'Koneksi berhasil!';
           _isLoading = false;
         });
-        
-        if (mounted) context.go('/login');
+        context.go('/login');
       }
-    } catch (e) {
+    } catch (_) {
+      if (!mounted) return;
       setState(() {
-        _statusMessage = "Gagal terhubung. Pastikan backend Docker Anda berjalan.";
+        _statusMessage =
+            'Gagal terhubung. Pastikan backend Docker berjalan dan HP berada di jaringan yang sama.';
         _isLoading = false;
       });
     }
@@ -74,16 +96,21 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _isLoading ? null : _testConnection,
-              // Tombol pengujian koneksi wajib disediakan[cite: 1]
-              child: _isLoading 
-                  ? const CircularProgressIndicator() 
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : const Text('Test Connection'),
             ),
             const SizedBox(height: 20),
             Text(
               _statusMessage,
               style: TextStyle(
-                color: _statusMessage.contains('Berhasil') ? Colors.green : Colors.red,
+                color: _statusMessage.contains('berhasil')
+                    ? Colors.green
+                    : Colors.red,
               ),
               textAlign: TextAlign.center,
             ),

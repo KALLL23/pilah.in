@@ -10,8 +10,10 @@ class MainScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final role = ref.watch(userRoleProvider);
-    final isAdmin = role == UserRole.admin;
+    final isAdmin = ref.watch(authSessionProvider).maybeWhen(
+      data: (session) => session.role == UserRole.admin,
+      orElse: () => false,
+    );
 
     return Scaffold(
       body: navigationShell,
@@ -28,7 +30,7 @@ class MainScaffold extends ConsumerWidget {
           const BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
           const BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Activity'),
           const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-          if (isAdmin) // Menu rahasia khusus Admin[cite: 1]
+          if (isAdmin)
             const BottomNavigationBarItem(icon: Icon(Icons.admin_panel_settings), label: 'Admin'),
         ],
       ),

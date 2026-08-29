@@ -7,7 +7,7 @@ class ImagePreprocessor {
     final dir = await getTemporaryDirectory();
     final targetPath = '${dir.absolute.path}/temp_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-    // Menerapkan kompresi JPEG 85, batas maksimal 1280px, dan menghapus metadata EXIF[cite: 1]
+    // Kompresi JPEG 85, batas maksimal 1280 px, dan metadata EXIF dihapus.
     final XFile? compressedImage = await FlutterImageCompress.compressAndGetFile(
       rawImage.absolute.path,
       targetPath,
@@ -22,7 +22,7 @@ class ImagePreprocessor {
 
     final processedFile = File(compressedImage.path);
     
-    // Validasi pencegahan ukuran file agar tidak melebihi 8 MB[cite: 1]
+    // Cegah upload file yang melebihi batas 8 MB.
     final fileSizeInBytes = await processedFile.length();
     if (fileSizeInBytes > 8 * 1024 * 1024) {
       throw Exception('Ukuran file melebihi batas 8 MB setelah kompresi.');

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../server_config_screen.dart';
+
+import '../../../core/providers/auth_provider.dart';
 import '../data/auth_repository.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -35,15 +36,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final dio = ref.read(dioProvider);
-      final storage = ref.read(secureStorageProvider);
-      final repo = AuthRepository(dio, storage);
-      
-      final success = await repo.register(_nameController.text.trim(), _emailController.text.trim(), _passwordController.text);
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pendaftaran berhasil! Silakan masuk.')));
-        context.go('/login'); // Memaksa pindah ke halaman login setelah berhasil
-      }
+      final response = await ref.read(authRepositoryProvider).register(
+        _nameController.text.trim(),
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+      await ref.read(authSessionProvider.notifier).authenticate(response);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pendaftaran berhasil!')),
+      );
+      context.go('/home');
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {

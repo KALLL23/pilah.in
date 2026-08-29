@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../server_config_screen.dart';
+
+import '../../../core/providers/auth_provider.dart';
 import '../data/auth_repository.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -33,11 +34,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final dio = ref.read(dioProvider);
-      final storage = ref.read(secureStorageProvider);
-      final repo = AuthRepository(dio, storage);
-      
-      await repo.login(_emailController.text.trim(), _passwordController.text);
+      final response = await ref
+          .read(authRepositoryProvider)
+          .login(_emailController.text.trim(), _passwordController.text);
+      await ref.read(authSessionProvider.notifier).authenticate(response);
       if (mounted) context.go('/home');
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));

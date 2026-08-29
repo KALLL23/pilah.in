@@ -1,5 +1,17 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../../../core/providers/auth_provider.dart';
+
+class AuthException implements Exception {
+  const AuthException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
 
 class AuthRepository {
   final Dio _dio;
@@ -8,38 +20,83 @@ class AuthRepository {
   AuthRepository(this._dio, this._storage);
 
   Future<Map<String, dynamic>> login(String email, String password) async {
-    final baseUrl = await _storage.read(key: 'server_url');
-    
+    final baseUrl = await _serverUrl();
+
     try {
       final response = await _dio.post(
         '$baseUrl/api/v1/auth/login',
         data: {'email': email, 'password': password},
       );
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-        await _storage.write(key: 'access_token', value: data['access_token']);
-        await _storage.write(key: 'refresh_token', value: data['refresh_token']);
-        return data;
-      }
-      throw Exception('Gagal login');
-    } catch (e) {
-      throw Exception('Email atau sandi salah. Pastikan akun sudah terdaftar.');
+      return _responseMap(response.data);
+    } on DioException catch (error) {
+      throw AuthException(
+        _messageFrom(error, 'Email atau sandi salah.'),
+      );
     }
   }
 
-  Future<bool> register(String name, String email, String password) async {
-    final baseUrl = await _storage.read(key: 'server_url');
-    
+  Future<Map<String, dynamic>> register(
+    String name,
+    String email,
+    String password,
+  ) async {
+    final baseUrl = await _serverUrl();
+
     try {
       final response = await _dio.post(
-        '$baseUrl/api/v1/auth/register', 
+        '$baseUrl/api/v1/auth/register',
         data: {'name': name, 'email': email, 'password': password},
       );
-      
-      return response.statusCode == 200 || response.statusCode == 201;
-    } catch (e) {
-      throw Exception('Pendaftaran gagal. Email mungkin sudah terdaftar atau terjadi kesalahan server.');
+      return _responseMap(response.data);
+    } on DioException catch (error) {
+      throw AuthException(
+        _messageFrom(error, 'Pendaftaran gagal. Silakan coba kembali.'),
+      );
     }
   }
+
+  Future<String> _serverUrl() async {
+    final value = await _storage.read(key: 'server_url');
+    if (value == null || value.isEmpty) {
+      throw const AuthException('Server belum dikonfigurasi.');
+    }
+    return value;
+  }
+
+  Map<String, dynamic> _responseMap(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+    if (data is Map) {
+      return Map<String, dynamic>.from(data);
+    }
+    throw const AuthException('Respons autentikasi server tidak valid.');
+  }
+
+  String _messageFrom(DioException error, String fallback) {
+    final data = error.response?.data;
+    if (data is Map) {
+      final apiError = data['error'];
+      if (apiError is Map && apiError['message'] is String) {
+        return apiError['message'] as String;
+      }
+      if (data['detail'] is String) {
+        return data['detail'] as String;
+      }
+    }
+    if (error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.sendTimeout) {
+      return 'Server tidak dapat dihubungi.';
+    }
+    return fallback;
+  }
 }
+
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  return AuthRepository(
+    ref.watch(dioProvider),
+    ref.watch(secureStorageProvider),
+  );
+});
