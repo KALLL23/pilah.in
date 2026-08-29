@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.models import (
     Facility,
+    FacilityAccessScope,
     FacilityCategory,
     WasteCategory,
     WasteKnowledge,
@@ -73,9 +74,7 @@ class RecommendationRepository:
         return [
             KnowledgeContextItem(
                 id=record.id,
-                management_guidance=record.management_guidance,
-                preparation_guidance=record.preparation_guidance,
-                warnings=record.warnings,
+                content=record.content,
                 source=record.source,
                 source_url=record.source_url,
             )
@@ -86,7 +85,12 @@ class RecommendationRepository:
         result = await self.session.execute(
             select(Facility)
             .join(FacilityCategory, FacilityCategory.facility_id == Facility.id)
-            .where(FacilityCategory.category_id == category_id, Facility.verified.is_(True))
+            .where(
+                FacilityCategory.category_id == category_id,
+                Facility.verified.is_(True),
+                Facility.is_active.is_(True),
+                Facility.access_scope == FacilityAccessScope.PUBLIC,
+            )
             .order_by(Facility.name, Facility.id)
         )
         return [

@@ -30,8 +30,15 @@ class Settings(BaseSettings):
     classification_model: Path = Path("/models/waste_cls.pt")
     classification_model_version: str = Field(default="PILAH-CLS-v0.1.0", min_length=1, max_length=80)
     classification_image_size: int = Field(default=224, ge=32, le=2048)
+    detection_model: Path = Path("/models/waste_det.pt")
+    detection_model_version: str = Field(default="PILAH-DET-v0.1.0", min_length=1, max_length=80)
+    detection_confidence_threshold: float = Field(default=0.25, ge=0, le=1)
+    seed_data_dir: Path = Path("../data/semarang")
     model_confidence_threshold: float = Field(default=0.70, ge=0, le=1)
     max_image_bytes: int = Field(default=8 * 1024 * 1024, ge=1)
+    nominatim_base_url: AnyHttpUrl = AnyHttpUrl("https://nominatim.openstreetmap.org")
+    nominatim_user_agent: str = Field(default="pilah.in", min_length=3, max_length=200)
+    nominatim_timeout_seconds: float = Field(default=10, gt=0, le=60)
     llm_base_url: AnyHttpUrl = AnyHttpUrl("https://openrouter.ai/api/v1")
     llm_api_key: SecretStr | None = None
     llm_model: str | None = None

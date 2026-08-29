@@ -81,7 +81,7 @@ class RecommendationService:
         context = RecommendationContext(
             category=owned_scan.category_code,
             conditions=conditions,
-            knowledge=knowledge,
+            facts=knowledge,
             facilities=facilities,
         )
         knowledge_ids = [item.id for item in knowledge]

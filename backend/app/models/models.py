@@ -38,6 +38,13 @@ class FacilityType(str, enum.Enum):
     SPECIAL_WASTE_FACILITY = "SPECIAL_WASTE_FACILITY"
 
 
+class FacilityAccessScope(str, enum.Enum):
+    PUBLIC = "PUBLIC"
+    COMMUNITY = "COMMUNITY"
+    INTERNAL = "INTERNAL"
+    UNKNOWN = "UNKNOWN"
+
+
 class WasteVolume(str, enum.Enum):
     SMALL = "SMALL"
     MEDIUM = "MEDIUM"
@@ -129,9 +136,7 @@ class WasteKnowledge(TimestampMixin, Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     category_id: Mapped[int] = mapped_column(SmallInteger, ForeignKey("waste_categories.id", ondelete="RESTRICT"), nullable=False)
     condition_scope: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
-    management_guidance: Mapped[str] = mapped_column(Text, nullable=False)
-    preparation_guidance: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
-    warnings: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
+    content: Mapped[str] = mapped_column(Text, nullable=False)
     source: Mapped[str] = mapped_column(Text, nullable=False)
     source_url: Mapped[str | None] = mapped_column(Text)
     last_reviewed_at: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -144,11 +149,17 @@ class Facility(TimestampMixin, Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     facility_type: Mapped[FacilityType] = mapped_column(enum_type(FacilityType, "facility_type"), nullable=False)
+    access_scope: Mapped[FacilityAccessScope] = mapped_column(
+        enum_type(FacilityAccessScope, "facility_access_scope"),
+        nullable=False,
+        server_default=FacilityAccessScope.UNKNOWN.value,
+    )
     address: Mapped[str] = mapped_column(Text, nullable=False)
     phone: Mapped[str | None] = mapped_column(String(50))
     opening_hours: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
     location: Mapped[object] = mapped_column(Geography("POINT", srid=4326, spatial_index=False), nullable=False)
     verified: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     source: Mapped[str] = mapped_column(Text, nullable=False)
     source_url: Mapped[str | None] = mapped_column(Text)
     last_verified_at: Mapped[object | None] = mapped_column(DateTime(timezone=True))

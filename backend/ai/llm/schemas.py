@@ -33,9 +33,7 @@ class KnowledgeContextItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: UUID
-    management_guidance: str
-    preparation_guidance: list[str]
-    warnings: list[str]
+    content: str
     source: str
     source_url: str | None = None
 
@@ -54,7 +52,7 @@ class RecommendationContext(BaseModel):
 
     category: WasteCategoryCode
     conditions: RecommendationConditions
-    knowledge: list[KnowledgeContextItem]
+    facts: list[KnowledgeContextItem]
     facilities: list[FacilityContextItem]
 
 

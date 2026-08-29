@@ -17,7 +17,8 @@ Use only facts explicitly present in the supplied context. Do not use external k
 facilities, regulations, waste-management facts, warnings, or facility IDs. Choose exactly one action from REUSE,
 RECYCLE, COMPOST, RESIDUAL, or SPECIAL_HANDLING. A facility ID may be returned only when it appears under
 VERIFIED FACILITIES. An empty facility list is valid; when it is empty, recommended_facility_ids must be empty,
-even when facility_required is true. Preserve warnings supported by WASTE KNOWLEDGE. All user-facing text in
+even when facility_required is true. Treat VERIFIED WASTE FACTS only as evidence, never as a precomputed action.
+Derive the final action, preparation steps, and warnings from those facts and the supplied conditions. All user-facing text in
 reason, preparation_steps, and warnings must be concise, clear Bahasa Indonesia. Return only JSON matching the
 provided schema."""
 }
@@ -38,7 +39,7 @@ def build_recommendation_prompt(context: RecommendationContext, version: str) ->
         {
             "CATEGORY": context_payload["category"],
             "CONDITIONS": context_payload["conditions"],
-            "WASTE KNOWLEDGE": context_payload["knowledge"],
+            "VERIFIED WASTE FACTS": context_payload["facts"],
             "VERIFIED FACILITIES": context_payload["facilities"],
         },
         ensure_ascii=False,

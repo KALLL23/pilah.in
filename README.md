@@ -2,7 +2,7 @@
 
 pilah.in is a mobile waste-management assistant for Kota Semarang. It combines waste identification, actionable handling recommendations, facility discovery, community reporting, geospatial risk prioritisation, and map-based monitoring.
 
-The project is under active development. The repository includes the PostgreSQL/PostGIS schema, Docker infrastructure, YOLO classification pipeline, Scan Waste backend, and grounded LLM recommendation engine.
+The project is under active development. The repository includes the PostgreSQL/PostGIS schema, Docker infrastructure, YOLO classification and detection adapters, the complete `/api/v1` backend contract, and a grounded LLM recommendation engine.
 
 ## Repository layout
 
@@ -42,7 +42,7 @@ flutter run
 
 ### Full local stack
 
-The stack starts PostgreSQL/PostGIS, MinIO, creates the configured object-storage bucket, applies all Alembic migrations, and then starts the API.
+The stack starts PostgreSQL/PostGIS, MinIO, creates the configured object-storage bucket, applies all Alembic migrations, reconciles operational seed files, and then starts the API.
 
 ```bash
 copy .env.example .env
@@ -78,7 +78,7 @@ The initial migration covers identity and refresh tokens, waste scans and ground
 
 PostgreSQL uses `timestamptz` and its session timezone is `Asia/Jakarta` (UTC+7). PostgreSQL still stores instants consistently; API and database output are presented in Western Indonesian Time.
 
-The Scan Waste backend currently provides:
+The backend provides:
 
 ```text
 POST  /api/v1/scans/infer
@@ -87,7 +87,21 @@ POST  /api/v1/scans/{id}/recommend
 GET   /api/v1/scans
 GET   /api/v1/scans/{id}
 GET   /api/v1/categories
+GET   /api/v1/facilities
+GET   /api/v1/facilities/nearby
+GET   /api/v1/facilities/{id}
+POST  /api/v1/reports
+GET   /api/v1/reports
+GET   /api/v1/reports/{id}
+POST  /api/v1/reports/{id}/confirm
+GET   /api/v1/map/reports
+GET   /api/v1/map/facilities
+GET   /api/v1/map/hotspots
+GET   /api/v1/sync/report-status
+GET/PATCH/POST/DELETE /api/v1/admin/*
 ```
+
+All endpoints except health, auth, and categories require a JWT. Admin endpoints additionally require the `ADMIN` role. Interactive OpenAPI documentation is available at `/docs` while the API is running.
 
 Inference accepts JPEG, PNG, or WEBP images up to 8 MB. Images are stored in the private MinIO bucket and API responses contain a presigned URL valid for 15 minutes.
 
@@ -96,6 +110,14 @@ Inference accepts JPEG, PNG, or WEBP images up to 8 MB. Images are stored in the
 Copy `.env.example` to `.env` before introducing services that require configuration. Fill in secrets only in `.env`; it is ignored by Git.
 
 Set `MINIO_PUBLIC_ENDPOINT` to the laptop's LAN address (for example `192.168.1.10:9000`) when the Flutter application runs on a phone. MinIO uses `MINIO_ENDPOINT=minio:9000` internally, while presigned URLs use the public endpoint.
+
+`CLASSIFICATION_MODEL` is used by Scan Waste and `DETECTION_MODEL` by Report Waste. Report creation also requires all four GeoJSON layers under `data/semarang`. `NOMINATIM_BASE_URL`, `NOMINATIM_USER_AGENT`, and `NOMINATIM_TIMEOUT_SECONDS` configure best-effort reverse geocoding; network failure leaves `address` null and does not fail the report.
+
+## Operational seed and readiness
+
+`data/semarang/waste_knowledge.csv` and `data/semarang/facilities.csv` intentionally contain headers only. Do not promote candidates from `draft/data_draft` until they are verified. Public facility queries only expose active, verified, `PUBLIC` facilities that accept the requested category.
+
+The optional spatial files are `city_boundary.geojson`, `waterways.geojson`, `residential.geojson`, and `public_facilities.geojson`. Missing or empty seed files do not fail startup. List and map endpoints return empty successful responses, knowledge recommendation returns `422 KNOWLEDGE_NOT_AVAILABLE` when no fact matches, and `POST /reports` returns `503 SERVER_UNAVAILABLE` without creating a database record or object until the detection model and every spatial layer are ready.
 
 ## MinIO setup and verification
 

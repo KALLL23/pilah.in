@@ -35,8 +35,15 @@ services:
       CLASSIFICATION_MODEL_VERSION: ${CLASSIFICATION_MODEL_VERSION:-PILAH-CLS-v0.1.0}
       CLASSIFICATION_IMAGE_SIZE: ${CLASSIFICATION_IMAGE_SIZE:-224}
       MODEL_CONFIDENCE_THRESHOLD: ${MODEL_CONFIDENCE_THRESHOLD:-0.70}
+      DETECTION_MODEL: /models/waste_det.pt
+      DETECTION_MODEL_VERSION: ${DETECTION_MODEL_VERSION:-PILAH-DET-v0.1.0}
+      DETECTION_CONFIDENCE_THRESHOLD: ${DETECTION_CONFIDENCE_THRESHOLD:-0.25}
+      SEED_DATA_DIR: /data/semarang
       MAX_IMAGE_BYTES: ${MAX_IMAGE_BYTES:-8388608}
       PRESIGNED_URL_EXPIRY_SECONDS: ${PRESIGNED_URL_EXPIRY_SECONDS:-900}
+      NOMINATIM_BASE_URL: ${NOMINATIM_BASE_URL:-https://nominatim.openstreetmap.org}
+      NOMINATIM_USER_AGENT: ${NOMINATIM_USER_AGENT:-pilah.in/1.0}
+      NOMINATIM_TIMEOUT_SECONDS: ${NOMINATIM_TIMEOUT_SECONDS:-10}
     ports:
       - "${APP_PORT:-8000}:8000"
     depends_on:
@@ -53,6 +60,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./models:/models:ro
+      - ./data/semarang:/data/semarang:ro
 
   postgres:
     image: postgis/postgis:15-3.4
