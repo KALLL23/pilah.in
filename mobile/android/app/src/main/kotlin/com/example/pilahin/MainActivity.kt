@@ -1,4 +1,4 @@
-package com.example.ecosync
+package com.example.pilahin
 
 import io.flutter.embedding.android.FlutterActivity
 

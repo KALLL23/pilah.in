@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class HomeDashboard extends StatelessWidget {
   const HomeDashboard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Warna yang diekstrak dari desain
     const primaryGreen = Color(0xFF1E3F28);
-    const accentGreen = Color(0xFF00BFA5);
-    const lightGreenBg = Color(0xFFE8F5E9);
     const backgroundColor = Color(0xFFF8F9FA);
 
     return Scaffold(
@@ -16,27 +14,56 @@ class HomeDashboard extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: backgroundColor,
         elevation: 0,
-        title: const Text(
-          'pilah.in',
-          style: TextStyle(
-            color: primaryGreen,
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
+        title: Row(
+          children: [
+            const CircleAvatar(
+              radius: 20,
+              backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=11'),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Halo,',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const Text(
+                  'Ahmad',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: primaryGreen,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_rounded, color: primaryGreen),
-            onPressed: () {},
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_none_rounded, color: primaryGreen),
+                onPressed: () {},
+              ),
+              Positioned(
+                right: 12,
+                top: 12,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const Padding(
-            padding: EdgeInsets.only(right: 16.0),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundImage: NetworkImage(
-                  'https://i.pravatar.cc/150?img=44'), // Placeholder profile
-            ),
-          )
         ],
       ),
       body: SingleChildScrollView(
@@ -44,330 +71,271 @@ class HomeDashboard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Section: Greeting ---
-            const Text(
-              'Hello, Eco-Warrior!',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: primaryGreen,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              "Here's your impact today.",
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // --- Section: Circularity Points Card ---
-            _buildStatCard(
-              title: 'CIRCULARITY POINTS',
-              icon: Icons.eco_outlined,
-              value: '1,250',
-              badgeText: '+45 today',
-              badgeColor: lightGreenBg,
-              badgeTextColor: primaryGreen,
-            ),
-            const SizedBox(height: 16),
-
-            // --- Section: Total Waste Diverted Card ---
+            // Eco Points Card
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: primaryGreen,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.withOpacity(0.2)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Icon(Icons.recycling_rounded, size: 16, color: primaryGreen),
-                      const SizedBox(width: 8),
-                      Text(
-                        'TOTAL WASTE DIVERTED',
+                      const Text(
+                        'Total Eco Points',
                         style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.2,
-                          color: Colors.grey[700],
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.eco_outlined,
+                          color: Colors.white,
+                          size: 20,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  const Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '42',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: primaryGreen,
-                        ),
-                      ),
-                      SizedBox(width: 4),
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 6.0),
-                        child: Text(
-                          'kg',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: primaryGreen,
-                          ),
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 8),
+                  const Text(
+                    '2.450',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Goal: 50 kg', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                      Text('84%', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                      const Text(
+                        'Target Mingguan',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const Text(
+                        '75%',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
-                      value: 0.84,
-                      backgroundColor: Colors.grey[200],
-                      valueColor: const AlwaysStoppedAnimation<Color>(accentGreen),
-                      minHeight: 8,
+                      value: 0.75,
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                      minHeight: 6,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-
-            // --- Section: Estimated Value Earned Card ---
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.withOpacity(0.2)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.payments_outlined, size: 16, color: primaryGreen),
-                      const SizedBox(width: 8),
-                      Text(
-                        'ESTIMATED VALUE EARNED',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.2,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  const Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 6.0),
-                        child: Text(
-                          'Rp',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: primaryGreen,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        '150,000',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: primaryGreen,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: backgroundColor,
-                      borderRadius: const BorderRadius.only(
-                        topRight: Radius.circular(8),
-                        bottomRight: Radius.circular(8),
-                      ),
-                      border: const Border(
-                        left: BorderSide(color: accentGreen, width: 3),
-                      ),
-                    ),
-                    child: const Text(
-                      'Potential to earn +Rp 25,000 this week.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontFamily: 'monospace', // Efek teks ala terminal/monospaced di desain
-                        color: Colors.black54,
-                      ),
-                    ),
-                  )
-                ],
-              ),
+            const SizedBox(height: 24),
+            
+            // Grid Actions
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 1.1,
+              children: [
+                _buildGridItem(
+                  icon: Icons.qr_code_scanner,
+                  iconBg: const Color(0xFFE8F5E9),
+                  iconColor: primaryGreen,
+                  title: 'Scan Sampah',
+                  onTap: () => context.push('/scan'),
+                ),
+                _buildGridItem(
+                  icon: Icons.location_on,
+                  iconBg: const Color(0xFFF3E5F5),
+                  iconColor: Colors.purple,
+                  title: 'Lokasi',
+                  onTap: () => context.push('/map'),
+                ),
+                _buildGridItem(
+                  icon: Icons.school,
+                  iconBg: const Color(0xFFFFEBEE),
+                  iconColor: Colors.redAccent,
+                  title: 'Edukasi',
+                  onTap: () {},
+                ),
+                _buildGridItem(
+                  icon: Icons.history,
+                  iconBg: const Color(0xFFECEFF1),
+                  iconColor: Colors.blueGrey,
+                  title: 'Riwayat',
+                  onTap: () => context.push('/activity'),
+                ),
+              ],
             ),
             const SizedBox(height: 32),
-
-            // --- Section: Recent Scans ---
-            const Text(
-              'Recent Scans',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryGreen,
-              ),
+            
+            // Aktivitas Terkini
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Aktivitas Terkini',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => context.push('/activity'),
+                  child: const Text(
+                    'Lihat Semua',
+                    style: TextStyle(
+                      color: primaryGreen,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.withOpacity(0.2)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: backgroundColor,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.local_drink_outlined, color: primaryGreen),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'PET Plastic Bottles',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: primaryGreen,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Today, 09:41 AM',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Text(
-                    '+15 pts',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: primaryGreen,
-                    ),
-                  ),
-                ],
-              ),
+            _buildActivityItem(
+              icon: Icons.recycling,
+              iconBg: const Color(0xFFE8F5E9),
+              iconColor: primaryGreen,
+              title: 'Setor Botol Plastik',
+              time: 'Hari ini, 09:41',
+              points: '+50',
             ),
-            const SizedBox(height: 80), // Padding bawah agar tidak tertutup Bottom Navigation Bar
+            const SizedBox(height: 12),
+            _buildActivityItem(
+              icon: Icons.delete_outline,
+              iconBg: const Color(0xFFE8F5E9),
+              iconColor: primaryGreen,
+              title: 'Setor Kaleng Bekas',
+              time: 'Kemarin, 14:20',
+              points: '+30',
+            ),
+            const SizedBox(height: 80), // Padding for bottom nav
           ],
         ),
       ),
     );
   }
 
-  // --- Widget Builder Pembantu untuk Kartu ---
-  Widget _buildStatCard({
-    required String title,
+  Widget _buildGridItem({
     required IconData icon,
-    required String value,
-    String? badgeText,
-    Color? badgeColor,
-    Color? badgeTextColor,
+    required Color iconBg,
+    required Color iconColor,
+    required String title,
+    required VoidCallback onTap,
   }) {
-    const primaryGreen = Color(0xFF1E3F28);
-    
-    // Background sedikit kehijauan khusus untuk kartu poin
-    final isPointCard = title.contains('POINTS');
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isPointCard ? const Color(0xFFF0FDF4) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: isPointCard ? const Color(0xFFD1FAE5) : Colors.grey.withOpacity(0.2)),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: iconBg,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 28),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  Widget _buildActivityItem({
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String title,
+    required String time,
+    required String points,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      ),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: primaryGreen),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.2,
-                  color: Colors.grey[700],
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: iconBg,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: iconColor),
           ),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: primaryGreen,
-                ),
-              ),
-              if (badgeText != null) ...[
-                const SizedBox(width: 12),
-                Container(
-                  margin: const EdgeInsets.only(bottom: 6),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: badgeColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    badgeText,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: badgeTextColor,
-                    ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
                   ),
                 ),
-              ]
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  time,
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            points,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: Color(0xFF1E3F28),
+            ),
           ),
         ],
       ),

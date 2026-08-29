@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.ecosync"
+    namespace = "com.example.pilahin"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 

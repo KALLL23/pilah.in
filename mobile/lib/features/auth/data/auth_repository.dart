@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/providers/auth_provider.dart';
 
 class AuthException implements Exception {
@@ -58,7 +59,7 @@ class AuthRepository {
   Future<String> _serverUrl() async {
     final value = await _storage.read(key: 'server_url');
     if (value == null || value.isEmpty) {
-      throw const AuthException('Server belum dikonfigurasi.');
+      return AppConfig.defaultServerUrl;
     }
     return value;
   }

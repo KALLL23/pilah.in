@@ -1,214 +1,339 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 
 class ResultScreen extends StatelessWidget {
   final String imagePath;
-  const ResultScreen({super.key, required this.imagePath});
+  final Map<String, dynamic> scanResponse;
+  final Map<String, dynamic>? recommendation;
+
+  const ResultScreen({
+    super.key,
+    required this.imagePath,
+    required this.scanResponse,
+    this.recommendation,
+  });
+
+  static const Map<String, Color> _actionColors = {
+    'REUSE': Color(0xFF2E7D32),
+    'RECYCLE': Color(0xFF1565C0),
+    'COMPOST': Color(0xFF558B2F),
+    'RESIDUAL': Color(0xFF757575),
+    'SPECIAL_HANDLING': Color(0xFFC62828),
+  };
+
+  static const Map<String, String> _actionLabels = {
+    'REUSE': 'Gunakan Kembali',
+    'RECYCLE': 'Daur Ulang',
+    'COMPOST': 'Kompos',
+    'RESIDUAL': 'Buang ke Tempat Sampah',
+    'SPECIAL_HANDLING': 'Penanganan Khusus',
+  };
+
+  static const Map<String, IconData> _actionIcons = {
+    'REUSE': Icons.replay,
+    'RECYCLE': Icons.recycling,
+    'COMPOST': Icons.eco,
+    'RESIDUAL': Icons.delete_outline,
+    'SPECIAL_HANDLING': Icons.warning_amber,
+  };
 
   @override
   Widget build(BuildContext context) {
     const primaryGreen = Color(0xFF1E3F28);
-    const accentGreen = Color(0xFF00BFA5);
-    const backgroundColor = Color(0xFFF8F9FA);
+
+    final predictedCategory = scanResponse['predicted_category'] as Map<String, dynamic>;
+    final confidence = (scanResponse['prediction_confidence'] as num).toDouble();
+    final categoryName = predictedCategory['name'] as String;
+
+    final action = recommendation?['action'] as String?;
+    final reason = recommendation?['reason'] as String?;
+    final preparationSteps = (recommendation?['preparation_steps'] as List<dynamic>?)
+        ?.map((e) => e.toString())
+        .toList();
+    final warnings = (recommendation?['warnings'] as List<dynamic>?)
+        ?.map((e) => e.toString())
+        .toList();
+
+    final actionColor = _actionColors[action] ?? Colors.grey;
+    final actionLabel = _actionLabels[action] ?? action ?? '-';
+    final actionIcon = _actionIcons[action] ?? Icons.help_outline;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        backgroundColor: backgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: primaryGreen),
-          onPressed: () => Navigator.pop(context), // Kembali ke dashboard
-        ),
-        title: const Text(
-          'Scan Result',
-          style: TextStyle(color: primaryGreen, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: primaryGreen),
-            onPressed: () {},
-          )
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // --- Gambar & Material Terdeteksi ---
-            Container(
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: MediaQuery.of(context).size.height * 0.4,
+            child: Image.file(File(imagePath), fit: BoxFit.cover),
+          ),
+          Positioned(
+            top: 40,
+            left: 8,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).size.height * 0.35,
+            right: 20,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                color: Colors.white.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8)],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  // Dummy Gambar (Ganti dengan Image.file jika menggunakan path asli)
-                  Container(
-                    height: 150,
-                    decoration: const BoxDecoration(
-                      color: Colors.grey,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                    ),
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          top: 12,
-                          right: 12,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: primaryGreen.withOpacity(0.8),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.check_circle, color: Colors.white, size: 14),
-                                SizedBox(width: 6),
-                                Text('AI Match: 94%', style: TextStyle(color: Colors.white, fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                  const Icon(Icons.check_circle, color: primaryGreen, size: 16),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${(confidence * 100).toStringAsFixed(1)}%',
+                    style: const TextStyle(
+                      color: primaryGreen,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                ],
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.65,
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Text(
+                        'Hasil Analisis',
+                        style: TextStyle(
+                          color: primaryGreen,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      categoryName,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: primaryGreen,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    if (action != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: actionColor.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: actionColor.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
                           children: [
-                            Text('DETECTED MATERIAL', style: TextStyle(fontSize: 10, letterSpacing: 1.2, color: Colors.grey[600])),
-                            const SizedBox(height: 4),
-                            const Text('PET Bottle', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: primaryGreen)),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: actionColor.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(actionIcon, color: actionColor, size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Tindakan',
+                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                  ),
+                                  Text(
+                                    actionLabel,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: actionColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(8)),
-                          child: const Text('#01 PETE', style: TextStyle(color: primaryGreen, fontWeight: FontWeight.w600, fontSize: 12)),
-                        ),
-                      ],
-                    ),
-                  )
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // --- Circularity Score ---
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white, 
-                borderRadius: BorderRadius.circular(16), 
-                border: Border.all(color: Colors.grey.withOpacity(0.2))
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Circularity Score', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryGreen)),
-                      const SizedBox(height: 4),
-                      Text('High recycling potential', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                    ],
-                  ),
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      SizedBox(
-                        width: 50, 
-                        height: 50, 
-                        child: CircularProgressIndicator(
-                          value: 0.84, 
-                          backgroundColor: Colors.grey[200], 
-                          valueColor: const AlwaysStoppedAnimation<Color>(primaryGreen), 
-                          strokeWidth: 4
-                        )
                       ),
-                      const Text('84', style: TextStyle(fontWeight: FontWeight.bold, color: primaryGreen, fontSize: 16)),
+                      const SizedBox(height: 16),
                     ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
 
-            // --- Best Action ---
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4), 
-                borderRadius: BorderRadius.circular(16), 
-                border: const Border(left: BorderSide(color: accentGreen, width: 4))
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.recycling, color: accentGreen, size: 28),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('BEST ACTION: RECYCLE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: primaryGreen)),
-                        const SizedBox(height: 8),
-                        Text(
-                          'High-density PET plastic is optimal for mechanical recycling. Ensure it is empty and crushed before disposal.', 
-                          style: TextStyle(fontSize: 14, color: Colors.grey[800], height: 1.5)
+                    if (reason != null && reason.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          const Icon(Icons.lightbulb_outline, color: primaryGreen, size: 18),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'Alasan',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        reason,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade700,
+                          height: 1.5,
                         ),
-                      ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    if (preparationSteps != null && preparationSteps.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          const Icon(Icons.checklist, color: primaryGreen, size: 18),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'Langkah Persiapan',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ...preparationSteps.asMap().entries.map((entry) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(top: 5),
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: primaryGreen,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  entry.value,
+                                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 16),
+                    ],
+
+                    if (warnings != null && warnings.isNotEmpty) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF3E0),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 18),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Peringatan',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: Colors.orange,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            ...warnings.map((w) => Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                '• $w',
+                                style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                              ),
+                            )),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    if (action == null) ...[
+                      Center(
+                        child: Column(
+                          children: [
+                            Icon(Icons.info_outline, size: 48, color: Colors.grey.shade400),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Rekomendasi belum tersedia.',
+                              style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).popUntil((route) => route.isFirst);
+                        },
+                        icon: const Icon(Icons.home_outlined, color: primaryGreen),
+                        label: const Text(
+                          'Kembali ke Beranda',
+                          style: TextStyle(color: primaryGreen, fontSize: 14, fontWeight: FontWeight.w600),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(color: Colors.grey),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
                     ),
-                  )
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white, 
-          border: Border(top: BorderSide(color: Colors.grey.withOpacity(0.2)))
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              flex: 1,
-              child: OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.bookmark_border, color: primaryGreen),
-                label: const Text('Save', style: TextStyle(color: primaryGreen)),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16), 
-                  side: const BorderSide(color: primaryGreen), 
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                  ],
                 ),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 2,
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.document_scanner_outlined, color: Colors.white),
-                label: const Text('Scan Another', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryGreen, 
-                  padding: const EdgeInsets.symmetric(vertical: 16), 
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

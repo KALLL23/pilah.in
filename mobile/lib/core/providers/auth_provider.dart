@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../config/app_config.dart';
+
 enum UserRole { user, admin }
 
 class AuthSession {
@@ -46,12 +48,8 @@ class AuthSessionNotifier extends AsyncNotifier<AuthSession> {
   @override
   Future<AuthSession> build() async {
     final storage = ref.read(secureStorageProvider);
-    final roleValue = await storage.read(key: 'user_role');
     final session = AuthSession(
-      serverUrl: await storage.read(key: 'server_url'),
-      accessToken: await storage.read(key: 'access_token'),
-      refreshToken: await storage.read(key: 'refresh_token'),
-      role: roleValue == 'ADMIN' ? UserRole.admin : UserRole.user,
+      serverUrl: await storage.read(key: 'server_url') ?? AppConfig.defaultServerUrl,
     );
     _current = session;
     return session;
