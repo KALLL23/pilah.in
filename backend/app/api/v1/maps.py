@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user_id
 from app.db.session import get_db
-from app.repositories.maps import MapRepository, feature_collection, point_feature
+from app.repositories.maps import MapRepository, feature_collection, point_feature, line_feature
 from app.schemas.maps import GeoJSONFeatureCollection
 
 router = APIRouter(prefix="/api/v1/map", tags=["map"])
@@ -81,6 +81,43 @@ async def map_hotspots(
                     "first_seen": row["first_seen"].isoformat(),
                     "last_seen": row["last_seen"].isoformat(),
                 },
+            )
+            for row in rows
+        ]
+    )
+
+
+@router.get("/waterways", response_model=GeoJSONFeatureCollection)
+async def map_waterways(
+    _user_id: UUID = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    rows = await MapRepository(session).waterway_features()
+    return feature_collection(
+        [
+            line_feature(
+                row["id"],
+                row["geometry"],
+                {"name": row["name"]},
+            )
+            for row in rows
+        ]
+    )
+
+
+@router.get("/public-facilities", response_model=GeoJSONFeatureCollection)
+async def map_public_facilities(
+    _user_id: UUID = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    rows = await MapRepository(session).public_facility_features()
+    return feature_collection(
+        [
+            point_feature(
+                row["id"],
+                row["longitude"],
+                row["latitude"],
+                {"name": row["name"], "facility_kind": row["facility_kind"]},
             )
             for row in rows
         ]

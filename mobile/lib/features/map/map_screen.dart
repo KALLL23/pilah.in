@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
@@ -19,14 +20,27 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   bool _showReports = true;
   bool _showFacilities = true;
   bool _showHotspots = true;
+  bool _showWaterways = true;
+  bool _showPublicFacilities = true;
 
   List<Map<String, dynamic>> _reports = [];
   List<Map<String, dynamic>> _facilities = [];
   List<Map<String, dynamic>> _hotspots = [];
+  List<Map<String, dynamic>> _waterways = [];
+  List<Map<String, dynamic>> _publicFacilities = [];
 
   final Set<Marker> _markers = {};
+  final Set<Polyline> _polylines = {};
+
+  BitmapDescriptor? _markerExclamation;
+  BitmapDescriptor? _markerBankSampah;
+  BitmapDescriptor? _markerTps3r;
+  BitmapDescriptor? _markerRecycling;
+  BitmapDescriptor? _markerHotspot;
+  BitmapDescriptor? _markerPublic;
 
   bool _isLoading = true;
+  bool _markersReady = false;
   String? _error;
 
   static const double _defaultLat = -6.9666;
@@ -36,7 +50,89 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _initMarkers();
+  }
+
+  Future<void> _initMarkers() async {
+    _markerExclamation = await _createIconMarker(
+      color: const Color(0xFFD32F2F),
+      icon: Icons.report_problem,
+      size: 50,
+    );
+    _markerBankSampah = await _createIconMarker(
+      color: const Color(0xFF2E7D32),
+      icon: Icons.recycling,
+      size: 50,
+    );
+    _markerTps3r = await _createIconMarker(
+      color: const Color(0xFF1565C0),
+      icon: Icons.delete_outline,
+      size: 50,
+    );
+    _markerRecycling = await _createIconMarker(
+      color: const Color(0xFF6A1B9A),
+      icon: Icons.autorenew,
+      size: 50,
+    );
+    _markerHotspot = await _createIconMarker(
+      color: const Color(0xFFE65100),
+      icon: Icons.local_fire_department,
+      size: 50,
+    );
+    _markerPublic = await _createIconMarker(
+      color: const Color(0xFF00838F),
+      icon: Icons.apartment,
+      size: 50,
+    );
+
+    if (mounted) {
+      setState(() => _markersReady = true);
+      _loadData();
+    }
+  }
+
+  Future<BitmapDescriptor> _createIconMarker({
+    required Color color,
+    required IconData icon,
+    required int size,
+  }) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    final center = Offset(size / 2, size / 2);
+    final radius = size / 2.0;
+
+    canvas.drawCircle(center, radius, paint..color = color);
+
+    final shadowPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.2)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center + const Offset(0, 2), radius, shadowPaint);
+    canvas.drawCircle(center, radius, paint..color = color);
+
+    final textPainter = TextPainter(textDirection: TextDirection.ltr);
+    textPainter.text = TextSpan(
+      text: String.fromCharCode(icon.codePoint),
+      style: TextStyle(
+        fontSize: size * 0.45,
+        color: Colors.white,
+        fontFamily: icon.fontFamily,
+      ),
+    );
+    textPainter.layout();
+    final textOffset = Offset(
+      center.dx - textPainter.width / 2,
+      center.dy - textPainter.height / 2,
+    );
+    textPainter.paint(canvas, textOffset);
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(size, size);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    final bytes = byteData!.buffer.asUint8List();
+
+    return BitmapDescriptor.bytes(bytes);
   }
 
   Future<void> _loadData() async {
@@ -53,6 +149,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         _repository.getReports(accessToken: authSession.accessToken!),
         _repository.getFacilities(accessToken: authSession.accessToken!),
         _repository.getHotspots(accessToken: authSession.accessToken!),
+        _repository.getWaterways(accessToken: authSession.accessToken!),
+        _repository.getPublicFacilities(accessToken: authSession.accessToken!),
       ]);
 
       if (mounted) {
@@ -66,6 +164,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   .toList() ??
               [];
           _hotspots = (results[2]['features'] as List<dynamic>?)
+                  ?.map((e) => Map<String, dynamic>.from(e as Map))
+                  .toList() ??
+              [];
+          _waterways = (results[3]['features'] as List<dynamic>?)
+                  ?.map((e) => Map<String, dynamic>.from(e as Map))
+                  .toList() ??
+              [];
+          _publicFacilities = (results[4]['features'] as List<dynamic>?)
                   ?.map((e) => Map<String, dynamic>.from(e as Map))
                   .toList() ??
               [];
@@ -92,16 +198,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   void _updateMarkers() {
     _markers.clear();
+    _polylines.clear();
 
-    if (_showReports) {
-      _addReportMarkers();
-    }
-    if (_showFacilities) {
-      _addFacilityMarkers();
-    }
-    if (_showHotspots) {
-      _addHotspotMarkers();
-    }
+    if (_showReports) _addReportMarkers();
+    if (_showFacilities) _addFacilityMarkers();
+    if (_showHotspots) _addHotspotMarkers();
+    if (_showWaterways) _addWaterwayPolylines();
+    if (_showPublicFacilities) _addPublicFacilityMarkers();
 
     setState(() {});
   }
@@ -111,19 +214,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       final geometry = feature['geometry'] as Map<String, dynamic>?;
       final properties = feature['properties'] as Map<String, dynamic>?;
       if (geometry == null || properties == null) continue;
-
-      final coordinates = geometry['coordinates'] as List<dynamic>?;
-      if (coordinates == null || coordinates.length < 2) continue;
-
-      final lng = coordinates[0] as double;
-      final lat = coordinates[1] as double;
-      final riskLevel = properties['risk_level'] as String? ?? 'LOW';
+      final coords = geometry['coordinates'] as List<dynamic>?;
+      if (coords == null || coords.length < 2) continue;
 
       _markers.add(
         Marker(
           markerId: MarkerId('report_${feature['id']}'),
-          position: LatLng(lat, lng),
-          icon: _riskMarkerIcon(riskLevel),
+          position: LatLng(coords[1] as double, coords[0] as double),
+          icon: _markerExclamation ?? BitmapDescriptor.defaultMarker,
           onTap: () => _showDetailPopup('report', {
             'type': 'report',
             'id': feature['id'],
@@ -139,19 +237,30 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       final geometry = feature['geometry'] as Map<String, dynamic>?;
       final properties = feature['properties'] as Map<String, dynamic>?;
       if (geometry == null || properties == null) continue;
+      final coords = geometry['coordinates'] as List<dynamic>?;
+      if (coords == null || coords.length < 2) continue;
 
-      final coordinates = geometry['coordinates'] as List<dynamic>?;
-      if (coordinates == null || coordinates.length < 2) continue;
-
-      final lng = coordinates[0] as double;
-      final lat = coordinates[1] as double;
+      final facilityType = properties['facility_type'] as String? ?? 'OTHER';
+      BitmapDescriptor icon;
+      switch (facilityType) {
+        case 'BANK_SAMPAH':
+          icon = _markerBankSampah ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+          break;
+        case 'TPS3R':
+          icon = _markerTps3r ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue);
+          break;
+        case 'RECYCLING_FACILITY':
+          icon = _markerRecycling ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet);
+          break;
+        default:
+          icon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+      }
 
       _markers.add(
         Marker(
           markerId: MarkerId('facility_${feature['id']}'),
-          position: LatLng(lat, lng),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-              BitmapDescriptor.hueGreen),
+          position: LatLng(coords[1] as double, coords[0] as double),
+          icon: icon,
           onTap: () => _showDetailPopup('facility', {
             'type': 'facility',
             'id': feature['id'],
@@ -167,18 +276,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       final geometry = feature['geometry'] as Map<String, dynamic>?;
       final properties = feature['properties'] as Map<String, dynamic>?;
       if (geometry == null || properties == null) continue;
-
-      final coordinates = geometry['coordinates'] as List<dynamic>?;
-      if (coordinates == null || coordinates.length < 2) continue;
-
-      final lng = coordinates[0] as double;
-      final lat = coordinates[1] as double;
+      final coords = geometry['coordinates'] as List<dynamic>?;
+      if (coords == null || coords.length < 2) continue;
 
       _markers.add(
         Marker(
           markerId: MarkerId('hotspot_${feature['id']}'),
-          position: LatLng(lat, lng),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          position: LatLng(coords[1] as double, coords[0] as double),
+          icon: _markerHotspot ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
           onTap: () => _showDetailPopup('hotspot', {
             'type': 'hotspot',
             'id': feature['id'],
@@ -189,16 +294,51 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
-  BitmapDescriptor _riskMarkerIcon(String level) {
-    switch (level) {
-      case 'HIGH':
-        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
-      case 'MEDIUM':
-        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
-      case 'LOW':
-        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan);
-      default:
-        return BitmapDescriptor.defaultMarker;
+  void _addWaterwayPolylines() {
+    int idx = 0;
+    for (final feature in _waterways) {
+      final geometry = feature['geometry'] as Map<String, dynamic>?;
+      if (geometry == null) continue;
+
+      final coords = geometry['coordinates'] as List<dynamic>?;
+      if (coords == null || coords.length < 2) continue;
+
+      final points = coords
+          .map((c) => LatLng((c as List<dynamic>)[1] as double, c[0] as double))
+          .toList();
+
+      _polylines.add(
+        Polyline(
+          polylineId: PolylineId('waterway_${feature['id'] ?? idx}'),
+          points: points,
+          color: const Color(0xFF1E88E5).withValues(alpha: 0.7),
+          width: 3,
+        ),
+      );
+      idx++;
+    }
+  }
+
+  void _addPublicFacilityMarkers() {
+    for (final feature in _publicFacilities) {
+      final geometry = feature['geometry'] as Map<String, dynamic>?;
+      final props = feature['properties'] as Map<String, dynamic>?;
+      if (geometry == null || props == null) continue;
+      final coords = geometry['coordinates'] as List<dynamic>?;
+      if (coords == null || coords.length < 2) continue;
+
+      _markers.add(
+        Marker(
+          markerId: MarkerId('public_${feature['id']}'),
+          position: LatLng(coords[1] as double, coords[0] as double),
+          icon: _markerPublic ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
+          onTap: () => _showDetailPopup('public_facility', {
+            'type': 'public_facility',
+            'id': feature['id'],
+            ...props,
+          }),
+        ),
+      );
     }
   }
 
@@ -245,13 +385,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            if (type == 'report') ...[
-              _buildReportDetail(data),
-            ] else if (type == 'facility') ...[
-              _buildFacilityDetail(data),
-            ] else if (type == 'hotspot') ...[
-              _buildHotspotDetail(data),
-            ],
+            if (type == 'report') _buildReportDetail(data),
+            if (type == 'facility') _buildFacilityDetail(data),
+            if (type == 'hotspot') _buildHotspotDetail(data),
+            if (type == 'public_facility') _buildPublicFacilityDetail(data),
           ],
         ),
       ),
@@ -262,8 +399,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final riskLevel = data['risk_level'] as String? ?? 'LOW';
     final riskScore = (data['risk_score'] as num?)?.toDouble() ?? 0;
     final status = data['status'] as String? ?? '-';
-    final riskReasons =
-        (data['risk_reasons'] as List<dynamic>?)?.cast<String>() ?? [];
+    final riskReasons = (data['risk_reasons'] as List<dynamic>?)?.cast<String>() ?? [];
     final createdAt = data['created_at'] as String? ?? '';
 
     return Column(
@@ -271,20 +407,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       children: [
         Row(
           children: [
-            Icon(
-              Icons.report_problem,
-              color: _riskColor(riskLevel),
-              size: 24,
-            ),
+            const Icon(Icons.report_problem, color: Color(0xFFD32F2F), size: 24),
             const SizedBox(width: 8),
             const Expanded(
               child: Text(
                 'Laporan Sampah',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E3F28),
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3F28)),
               ),
             ),
           ],
@@ -294,10 +422,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         const SizedBox(height: 8),
         Row(
           children: [
-            Text(
-              'Risk Level: ',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-            ),
+            Text('Risk Level: ', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
@@ -306,47 +431,31 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
               child: Text(
                 _riskLevelText(riskLevel),
-                style: TextStyle(
-                  color: _riskColor(riskLevel),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(color: _riskColor(riskLevel), fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              'Score: ${riskScore.toStringAsFixed(0)}/100',
-              style: const TextStyle(fontSize: 13),
-            ),
+            Text('Score: ${riskScore.toStringAsFixed(0)}/100', style: const TextStyle(fontSize: 13)),
           ],
         ),
         if (riskReasons.isNotEmpty) ...[
           const SizedBox(height: 12),
-          const Text(
-            'Alasan Risiko:',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-          ),
+          const Text('Alasan Risiko:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
           const SizedBox(height: 4),
           ...riskReasons.map((reason) => Padding(
                 padding: const EdgeInsets.only(bottom: 2),
                 child: Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded,
-                        color: _riskColor(riskLevel), size: 14),
+                    Icon(Icons.warning_amber_rounded, color: _riskColor(riskLevel), size: 14),
                     const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(reason, style: const TextStyle(fontSize: 12)),
-                    ),
+                    Expanded(child: Text(reason, style: const TextStyle(fontSize: 12))),
                   ],
                 ),
               )),
         ],
         if (createdAt.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text(
-            'Dibuat: $createdAt',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
-          ),
+          Text('Dibuat: $createdAt', style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
         ],
       ],
     );
@@ -356,25 +465,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final name = data['name'] as String? ?? '-';
     final facilityType = data['facility_type'] as String? ?? '-';
     final address = data['address'] as String? ?? '-';
-    final categories =
-        (data['accepted_categories'] as List<dynamic>?)?.cast<String>() ?? [];
+    final categories = (data['accepted_categories'] as List<dynamic>?)?.cast<String>() ?? [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Icon(Icons.location_city, color: Color(0xFF1E3F28), size: 24),
+            const Icon(Icons.location_city, color: Color(0xFF2E7D32), size: 24),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E3F28),
-                ),
-              ),
+              child: Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3F28))),
             ),
           ],
         ),
@@ -384,10 +485,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         _buildDetailRow('Alamat', address),
         if (categories.isNotEmpty) ...[
           const SizedBox(height: 12),
-          const Text(
-            'Kategori Diterima:',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-          ),
+          const Text('Kategori Diterima:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
           const SizedBox(height: 4),
           Wrap(
             spacing: 6,
@@ -399,10 +497,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  _categoryName(cat),
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF1E3F28)),
-                ),
+                child: Text(_categoryName(cat), style: const TextStyle(fontSize: 11, color: Color(0xFF1E3F28))),
               );
             }).toList(),
           ),
@@ -423,16 +518,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       children: [
         Row(
           children: [
-            Icon(Icons.whatshot, color: _riskColor(highestRisk), size: 24),
+            Icon(Icons.local_fire_department, color: _riskColor(highestRisk), size: 24),
             const SizedBox(width: 8),
             const Expanded(
               child: Text(
                 'Hotspot Sampah',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E3F28),
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3F28)),
               ),
             ),
           ],
@@ -442,10 +533,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         const SizedBox(height: 8),
         Row(
           children: [
-            Text(
-              'Risk Tertinggi: ',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-            ),
+            Text('Risk Tertinggi: ', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
@@ -454,18 +542,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
               child: Text(
                 _riskLevelText(highestRisk),
-                style: TextStyle(
-                  color: _riskColor(highestRisk),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(color: _riskColor(highestRisk), fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        _buildDetailRow(
-            'Rata-rata Score', avgRiskScore.toStringAsFixed(1)),
+        _buildDetailRow('Rata-rata Score', avgRiskScore.toStringAsFixed(1)),
         if (firstSeen.isNotEmpty) ...[
           const SizedBox(height: 8),
           _buildDetailRow('Pertama Terlihat', firstSeen),
@@ -478,102 +561,100 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
+  Widget _buildPublicFacilityDetail(Map<String, dynamic> data) {
+    final name = data['name'] as String? ?? '-';
+    final kind = data['facility_kind'] as String? ?? '-';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.apartment, color: Color(0xFF00838F), size: 24),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3F28))),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildDetailRow('Jenis', _facilityKindText(kind)),
+      ],
+    );
+  }
+
   Widget _buildDetailRow(String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '$label: ',
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-          ),
-        ),
+        Text('$label: ', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+        Expanded(child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
       ],
     );
   }
 
   Color _riskColor(String level) {
     switch (level) {
-      case 'HIGH':
-        return Colors.red;
-      case 'MEDIUM':
-        return Colors.orange;
-      case 'LOW':
-        return const Color(0xFF00BFA5);
-      default:
-        return Colors.grey;
+      case 'HIGH': return Colors.red;
+      case 'MEDIUM': return Colors.orange;
+      case 'LOW': return const Color(0xFF00BFA5);
+      default: return Colors.grey;
     }
   }
 
   String _riskLevelText(String level) {
     switch (level) {
-      case 'HIGH':
-        return 'TINGGI';
-      case 'MEDIUM':
-        return 'SEDANG';
-      case 'LOW':
-        return 'RENDAH';
-      default:
-        return level;
+      case 'HIGH': return 'TINGGI';
+      case 'MEDIUM': return 'SEDANG';
+      case 'LOW': return 'RENDAH';
+      default: return level;
     }
   }
 
   String _statusText(String status) {
     switch (status) {
-      case 'REPORTED':
-        return 'Dilaporkan';
-      case 'VERIFIED':
-        return 'Diverifikasi';
-      case 'IN_PROGRESS':
-        return 'Ditangani';
-      case 'RESOLVED':
-        return 'Selesai';
-      default:
-        return status;
+      case 'REPORTED': return 'Dilaporkan';
+      case 'VERIFIED': return 'Diverifikasi';
+      case 'IN_PROGRESS': return 'Ditangani';
+      case 'RESOLVED': return 'Selesai';
+      default: return status;
     }
   }
 
   String _facilityTypeText(String type) {
     switch (type) {
-      case 'BANK_SAMPAH':
-        return 'Bank Sampah';
-      case 'TPS3R':
-        return 'TPS3R';
-      case 'COLLECTOR':
-        return 'Pengumpul';
-      case 'RECYCLING_FACILITY':
-        return 'Fasilitas Daur Ulang';
-      case 'SPECIAL_WASTE_FACILITY':
-        return 'Fasilitas Sampah Khusus';
-      default:
-        return type;
+      case 'BANK_SAMPAH': return 'Bank Sampah';
+      case 'TPS3R': return 'TPS3R';
+      case 'COLLECTOR': return 'Pengumpul';
+      case 'RECYCLING_FACILITY': return 'Fasilitas Daur Ulang';
+      case 'SPECIAL_WASTE_FACILITY': return 'Fasilitas Sampah Khusus';
+      default: return type;
+    }
+  }
+
+  String _facilityKindText(String kind) {
+    switch (kind) {
+      case 'health_facility': return 'Fasilitas Kesehatan';
+      case 'market': return 'Pasar';
+      case 'school': return 'Sekolah / Universitas';
+      case 'government': return 'Pemerintahan';
+      case 'public_gathering': return 'Tempat Umum';
+      case 'transportation': return 'Transportasi';
+      default: return kind;
     }
   }
 
   String _categoryName(String code) {
     switch (code) {
-      case 'PLASTIC':
-        return 'Plastik';
-      case 'PAPER_CARDBOARD':
-        return 'Kertas';
-      case 'GLASS':
-        return 'Kaca';
-      case 'METAL':
-        return 'Logam';
-      case 'ORGANIC':
-        return 'Organik';
-      case 'TEXTILE':
-        return 'Tekstil';
-      case 'ELECTRONIC_SPECIAL':
-        return 'Elektronik';
-      case 'RESIDUAL_MIXED':
-        return 'Residu';
-      default:
-        return code;
+      case 'PLASTIC': return 'Plastik';
+      case 'PAPER_CARDBOARD': return 'Kertas';
+      case 'GLASS': return 'Kaca';
+      case 'METAL': return 'Logam';
+      case 'ORGANIC': return 'Organik';
+      case 'TEXTILE': return 'Tekstil';
+      case 'ELECTRONIC_SPECIAL': return 'Elektronik';
+      case 'RESIDUAL_MIXED': return 'Residu';
+      default: return code;
     }
   }
 
@@ -585,7 +666,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       backgroundColor: const Color(0xFFF8F9FA),
       body: Stack(
         children: [
-          if (!_isLoading && _error == null)
+          if (!_isLoading && _error == null && _markersReady)
             GoogleMap(
               onMapCreated: (_) {},
               initialCameraPosition: const CameraPosition(
@@ -593,13 +674,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 zoom: _defaultZoom,
               ),
               markers: _markers,
+              polylines: _polylines,
               myLocationEnabled: false,
               zoomControlsEnabled: false,
               mapToolbarEnabled: false,
               compassEnabled: true,
             ),
 
-          if (_isLoading)
+          if (_isLoading || !_markersReady)
             const Center(
               child: CircularProgressIndicator(color: primaryGreen),
             ),
@@ -613,25 +695,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   children: [
                     Icon(Icons.error_outline, size: 48, color: Colors.grey[400]),
                     const SizedBox(height: 16),
-                    Text(
-                      _error!,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                      textAlign: TextAlign.center,
-                    ),
+                    Text(_error!, style: TextStyle(color: Colors.grey[600], fontSize: 14), textAlign: TextAlign.center),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () {
-                        setState(() {
-                          _isLoading = true;
-                          _error = null;
-                        });
+                        setState(() { _isLoading = true; _error = null; });
                         _loadData();
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryGreen,
-                      ),
-                      child: const Text('Coba Lagi',
-                          style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(backgroundColor: primaryGreen),
+                      child: const Text('Coba Lagi', style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
@@ -650,33 +722,40 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     label: 'Laporan',
                     icon: Icons.report_problem,
                     isSelected: _showReports,
-                    color: Colors.orange,
-                    onTap: () {
-                      setState(() => _showReports = !_showReports);
-                      _updateMarkers();
-                    },
+                    color: const Color(0xFFD32F2F),
+                    onTap: () { setState(() => _showReports = !_showReports); _updateMarkers(); },
                   ),
                   const SizedBox(width: 8),
                   _buildFilterChip(
-                    label: 'Fasilitas',
-                    icon: Icons.location_city,
+                    label: 'Bank Sampah',
+                    icon: Icons.recycling,
                     isSelected: _showFacilities,
-                    color: const Color(0xFF1E3F28),
-                    onTap: () {
-                      setState(() => _showFacilities = !_showFacilities);
-                      _updateMarkers();
-                    },
+                    color: const Color(0xFF2E7D32),
+                    onTap: () { setState(() => _showFacilities = !_showFacilities); _updateMarkers(); },
                   ),
                   const SizedBox(width: 8),
                   _buildFilterChip(
                     label: 'Hotspot',
-                    icon: Icons.whatshot,
+                    icon: Icons.local_fire_department,
                     isSelected: _showHotspots,
-                    color: Colors.red,
-                    onTap: () {
-                      setState(() => _showHotspots = !_showHotspots);
-                      _updateMarkers();
-                    },
+                    color: const Color(0xFFE65100),
+                    onTap: () { setState(() => _showHotspots = !_showHotspots); _updateMarkers(); },
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    label: 'Saluran Air',
+                    icon: Icons.water,
+                    isSelected: _showWaterways,
+                    color: const Color(0xFF1E88E5),
+                    onTap: () { setState(() => _showWaterways = !_showWaterways); _updateMarkers(); },
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    label: 'Fasilitas Umum',
+                    icon: Icons.apartment,
+                    isSelected: _showPublicFacilities,
+                    color: const Color(0xFF00838F),
+                    onTap: () { setState(() => _showPublicFacilities = !_showPublicFacilities); _updateMarkers(); },
                   ),
                 ],
               ),
@@ -696,11 +775,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildLegendItem(Colors.red, 'HIGH'),
+                  _buildLegendItem(const Color(0xFFD32F2F), 'Laporan'),
                   const SizedBox(height: 4),
-                  _buildLegendItem(Colors.orange, 'MEDIUM'),
+                  _buildLegendItem(const Color(0xFF2E7D32), 'Bank Sampah'),
                   const SizedBox(height: 4),
-                  _buildLegendItem(const Color(0xFF00BFA5), 'LOW'),
+                  _buildLegendItem(const Color(0xFF1565C0), 'TPS3R'),
+                  const SizedBox(height: 4),
+                  _buildLegendItem(const Color(0xFF6A1B9A), 'Daur Ulang'),
+                  const SizedBox(height: 4),
+                  _buildLegendItem(const Color(0xFFE65100), 'Hotspot'),
+                  const SizedBox(height: 4),
+                  _buildLegendItem(const Color(0xFF1E88E5), 'Saluran Air'),
+                  const SizedBox(height: 4),
+                  _buildLegendItem(const Color(0xFF00838F), 'Fasilitas Umum'),
                 ],
               ),
             ),
@@ -735,11 +822,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: isSelected ? Colors.white : color,
-              size: 16,
-            ),
+            Icon(icon, color: isSelected ? Colors.white : color, size: 16),
             const SizedBox(width: 4),
             Text(
               label,
@@ -762,10 +845,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         Container(
           width: 12,
           height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
         Text(label, style: const TextStyle(fontSize: 10)),

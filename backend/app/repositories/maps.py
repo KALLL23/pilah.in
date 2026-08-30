@@ -35,7 +35,7 @@ class MapRepository:
             FROM facilities f
             LEFT JOIN facility_categories fc ON fc.facility_id = f.id
             LEFT JOIN waste_categories wc ON wc.id = fc.category_id
-            WHERE f.verified = true AND f.is_active = true AND f.access_scope = 'PUBLIC'
+            WHERE f.is_active = true
             GROUP BY f.id
             ORDER BY f.name, f.id
             """
@@ -75,6 +75,32 @@ class MapRepository:
         return [dict(row) for row in result.mappings().all()]
 
 
+    async def waterway_features(self) -> list[dict]:
+        query = text(
+            """
+            SELECT id, name,
+                   ST_AsGeoJSON(geometry)::json AS geometry
+            FROM waterways
+            ORDER BY name, id
+            """
+        )
+        result = await self.session.execute(query)
+        return [dict(row) for row in result.mappings().all()]
+
+    async def public_facility_features(self) -> list[dict]:
+        query = text(
+            """
+            SELECT id, name, facility_kind,
+                   ST_Y(geometry) AS latitude,
+                   ST_X(geometry) AS longitude
+            FROM public_facilities
+            ORDER BY name, id
+            """
+        )
+        result = await self.session.execute(query)
+        return [dict(row) for row in result.mappings().all()]
+
+
 def feature_collection(features: list[dict]) -> dict:
     return {"type": "FeatureCollection", "features": features}
 
@@ -84,5 +110,14 @@ def point_feature(identifier, longitude: float, latitude: float, properties: dic
         "type": "Feature",
         "id": str(identifier),
         "geometry": {"type": "Point", "coordinates": [float(longitude), float(latitude)]},
+        "properties": properties,
+    }
+
+
+def line_feature(identifier, geometry: dict, properties: dict) -> dict:
+    return {
+        "type": "Feature",
+        "id": str(identifier),
+        "geometry": geometry,
         "properties": properties,
     }
