@@ -12,12 +12,16 @@ class AuthSession {
     this.accessToken,
     this.refreshToken,
     this.role = UserRole.user,
+    this.name,
+    this.email,
   });
 
   final String? serverUrl;
   final String? accessToken;
   final String? refreshToken;
   final UserRole role;
+  final String? name;
+  final String? email;
 
   bool get hasServer => serverUrl != null && serverUrl!.isNotEmpty;
 
@@ -50,6 +54,8 @@ class AuthSessionNotifier extends AsyncNotifier<AuthSession> {
     final storage = ref.read(secureStorageProvider);
     final session = AuthSession(
       serverUrl: await storage.read(key: 'server_url') ?? AppConfig.defaultServerUrl,
+      name: await storage.read(key: 'user_name'),
+      email: await storage.read(key: 'user_email'),
     );
     _current = session;
     return session;
@@ -61,6 +67,8 @@ class AuthSessionNotifier extends AsyncNotifier<AuthSession> {
     await storage.delete(key: 'access_token');
     await storage.delete(key: 'refresh_token');
     await storage.delete(key: 'user_role');
+    await storage.delete(key: 'user_name');
+    await storage.delete(key: 'user_email');
 
     final session = AuthSession(serverUrl: serverUrl);
     _current = session;
@@ -87,16 +95,23 @@ class AuthSessionNotifier extends AsyncNotifier<AuthSession> {
     }
 
     final role = roleValue == 'ADMIN' ? UserRole.admin : UserRole.user;
+    final name = user is Map ? user['name'] as String? : null;
+    final email = user is Map ? user['email'] as String? : null;
+
     final storage = ref.read(secureStorageProvider);
     await storage.write(key: 'access_token', value: accessToken);
     await storage.write(key: 'refresh_token', value: refreshToken);
     await storage.write(key: 'user_role', value: roleValue);
+    if (name != null) await storage.write(key: 'user_name', value: name);
+    if (email != null) await storage.write(key: 'user_email', value: email);
 
     final session = AuthSession(
       serverUrl: current.serverUrl,
       accessToken: accessToken,
       refreshToken: refreshToken,
       role: role,
+      name: name,
+      email: email,
     );
     _current = session;
     state = AsyncData(session);
@@ -107,6 +122,8 @@ class AuthSessionNotifier extends AsyncNotifier<AuthSession> {
     await storage.delete(key: 'access_token');
     await storage.delete(key: 'refresh_token');
     await storage.delete(key: 'user_role');
+    await storage.delete(key: 'user_name');
+    await storage.delete(key: 'user_email');
 
     final current = _current ?? const AuthSession();
     final session = AuthSession(serverUrl: current.serverUrl);
