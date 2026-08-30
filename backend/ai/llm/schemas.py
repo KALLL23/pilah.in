@@ -61,6 +61,7 @@ class LLMRecommendation(BaseModel):
 
     action: WasteAction
     reason: UserText
+    recycling_target: UserText
     preparation_steps: list[UserListItem]
     facility_required: StrictBool
     recommended_facility_ids: list[UUID]
@@ -72,6 +73,7 @@ class RecommendationResponse(BaseModel):
     recommendation_status: Literal["SUCCESS"]
     action: WasteAction
     reason: str
+    recycling_target: str
     preparation_steps: list[str]
     facility_required: bool
     recommended_facility_ids: list[UUID]

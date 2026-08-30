@@ -75,9 +75,9 @@ async def create_report(
     longitude: float = Form(ge=-180, le=180),
     location_accuracy_m: float | None = Form(default=None, ge=0),
     user_description: str | None = Form(default=None, max_length=2000),
-    waste_volume: WasteVolume = Form(...),
-    standing_water: bool = Form(...),
-    drainage_blockage: bool = Form(...),
+    waste_volume: WasteVolume | None = Form(default=None),
+    standing_water: bool | None = Form(default=None),
+    drainage_blockage: bool | None = Form(default=None),
     user_id: UUID = Depends(get_current_user_id),
     service: ReportService = Depends(get_report_service),
 ) -> ReportResponse:

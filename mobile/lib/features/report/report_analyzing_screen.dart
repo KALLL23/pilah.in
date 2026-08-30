@@ -106,7 +106,7 @@ class _ReportAnalyzingScreenState extends State<ReportAnalyzingScreen>
                   Icon(Icons.sync, color: accentGreen, size: 16),
                   SizedBox(width: 8),
                   Text(
-                    'AI sedang mendeteksi sampah\n& menghitung risiko...',
+                    'Memproses laporan...',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         fontFamily: 'monospace',

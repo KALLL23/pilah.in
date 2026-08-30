@@ -222,10 +222,8 @@ class ReportResultScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     _buildInfoRow('Volume', _volumeText(wasteVolume)),
                     _buildInfoRow('Genangan Air', standingWater ? 'Ya' : 'Tidak'),
-                    _buildInfoRow(
-                        'Saluran Tersumbat', drainageBlockage ? 'Ya' : 'Tidak'),
-                    _buildInfoRow(
-                        'Organik', organicPresence ? 'Terdeteksi' : 'Tidak'),
+                    _buildInfoRow('Saluran Tersumbat', drainageBlockage ? 'Ya' : 'Tidak'),
+                    _buildInfoRow('Organik', organicPresence ? 'Terdeteksi' : 'Tidak'),
                     const SizedBox(height: 12),
 
                     // Address

@@ -91,6 +91,7 @@ class ScanRepository:
         scan.is_wet = is_wet
         scan.recommendation_action = None
         scan.recommendation_reason = None
+        scan.recycling_target = None
         scan.preparation_steps = None
         scan.recommendation_warnings = None
         scan.recommendation_status = "NOT_REQUESTED"

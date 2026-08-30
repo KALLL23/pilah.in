@@ -127,6 +127,7 @@ class WasteScan(TimestampMixin, Base):
     is_wet: Mapped[bool | None] = mapped_column(Boolean)
     recommendation_action: Mapped[WasteAction | None] = mapped_column(enum_type(WasteAction, "waste_action"))
     recommendation_reason: Mapped[str | None] = mapped_column(Text)
+    recycling_target: Mapped[str | None] = mapped_column(Text)
     preparation_steps: Mapped[list | None] = mapped_column(JSONB)
     recommendation_warnings: Mapped[list | None] = mapped_column(JSONB)
     recommendation_status: Mapped[str | None] = mapped_column(String(20))

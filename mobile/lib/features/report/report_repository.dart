@@ -6,15 +6,34 @@ class ReportRepository {
 
   ReportRepository(this._dio, this._baseUrl);
 
+  Future<Map<String, dynamic>> detectImage({
+    required String imagePath,
+    required String accessToken,
+  }) async {
+    final formData = FormData.fromMap({
+      'image': await MultipartFile.fromFile(imagePath),
+    });
+
+    final response = await _dio.post(
+      '$_baseUrl/api/v1/detect',
+      data: formData,
+      options: Options(
+        headers: {'Authorization': 'Bearer $accessToken'},
+      ),
+    );
+
+    return response.data as Map<String, dynamic>;
+  }
+
   Future<Map<String, dynamic>> createReport({
     required String imagePath,
     required double latitude,
     required double longitude,
     double? locationAccuracyM,
     String? userDescription,
-    required String wasteVolume,
-    required bool standingWater,
-    required bool drainageBlockage,
+    String? wasteVolume,
+    bool? standingWater,
+    bool? drainageBlockage,
     required String accessToken,
   }) async {
     final formData = FormData.fromMap({
@@ -24,9 +43,9 @@ class ReportRepository {
       if (locationAccuracyM != null) 'location_accuracy_m': locationAccuracyM,
       if (userDescription != null && userDescription.isNotEmpty)
         'user_description': userDescription,
-      'waste_volume': wasteVolume,
-      'standing_water': standingWater,
-      'drainage_blockage': drainageBlockage,
+      if (wasteVolume != null) 'waste_volume': wasteVolume,
+      if (standingWater != null) 'standing_water': standingWater,
+      if (drainageBlockage != null) 'drainage_blockage': drainageBlockage,
     });
 
     final response = await _dio.post(

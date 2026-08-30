@@ -114,6 +114,7 @@ class RecommendationRepository:
     ) -> None:
         scan.recommendation_action = None
         scan.recommendation_reason = None
+        scan.recycling_target = None
         scan.preparation_steps = None
         scan.recommendation_warnings = None
         scan.recommendation_status = "PENDING"
@@ -130,12 +131,14 @@ class RecommendationRepository:
         *,
         action: Any,
         reason: str,
+        recycling_target: str,
         preparation_steps: list[str],
         warnings: list[str],
         latency_ms: int,
     ) -> None:
         scan.recommendation_action = action
         scan.recommendation_reason = reason
+        scan.recycling_target = recycling_target
         scan.preparation_steps = preparation_steps
         scan.recommendation_warnings = warnings
         scan.recommendation_status = "SUCCESS"
@@ -145,6 +148,7 @@ class RecommendationRepository:
     async def save_failed(self, scan: WasteScan, *, latency_ms: int | None = None) -> None:
         scan.recommendation_action = None
         scan.recommendation_reason = None
+        scan.recycling_target = None
         scan.preparation_steps = None
         scan.recommendation_warnings = None
         scan.recommendation_status = "FAILED"

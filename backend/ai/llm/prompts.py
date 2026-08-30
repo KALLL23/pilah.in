@@ -18,8 +18,10 @@ facilities, regulations, waste-management facts, warnings, or facility IDs. Choo
 RECYCLE, COMPOST, RESIDUAL, or SPECIAL_HANDLING. A facility ID may be returned only when it appears under
 VERIFIED FACILITIES. An empty facility list is valid; when it is empty, recommended_facility_ids must be empty,
 even when facility_required is true. Treat VERIFIED WASTE FACTS only as evidence, never as a precomputed action.
-Derive the final action, preparation steps, and warnings from those facts and the supplied conditions. All user-facing text in
-reason, preparation_steps, and warnings must be concise, clear Bahasa Indonesia. Return only JSON matching the
+Derive the final action, preparation steps, and warnings from those facts and the supplied conditions.
+For recycling_target, describe specifically what the waste can become (e.g. "Botol baru dari plastik PET", "Pupuk kompos dari sisa makanan").
+For preparation_steps, provide 3-5 concrete, actionable steps specific to that recycling target.
+All user-facing text in reason, recycling_target, preparation_steps, and warnings must be concise, clear Bahasa Indonesia. Return only JSON matching the
 provided schema."""
 }
 

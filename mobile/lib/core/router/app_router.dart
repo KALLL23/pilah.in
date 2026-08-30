@@ -14,6 +14,7 @@ import '../../features/admin/admin_screen.dart';
 import '../../features/knowledge/knowledge_screen.dart';
 import '../../features/map/map_screen.dart';
 import '../../features/profile/profile_screen.dart';
+import '../../features/report/report_screen.dart';
 import '../providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -207,6 +208,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/knowledge',
         builder: (context, state) => const KnowledgeScreen(),
+      ),
+      GoRoute(
+        path: '/report',
+        builder: (context, state) => const ReportScreen(),
       ),
     ],
   );
