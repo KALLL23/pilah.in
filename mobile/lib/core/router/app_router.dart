@@ -11,6 +11,9 @@ import '../../features/main/main_scaffold.dart';
 import '../../features/scan/scan_screen.dart';
 import '../../features/activity/activity_screen.dart';
 import '../../features/admin/admin_screen.dart';
+import '../../features/knowledge/knowledge_screen.dart';
+import '../../features/map/map_screen.dart';
+import '../../features/profile/profile_screen.dart';
 import '../providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -95,22 +98,6 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
   }
-}
-
-class MapScreen extends StatelessWidget {
-  const MapScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: Text('Map Screen')));
-}
-
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: Text('Profile Screen')));
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -216,6 +203,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/knowledge',
+        builder: (context, state) => const KnowledgeScreen(),
       ),
     ],
   );
