@@ -9,10 +9,12 @@ from app.ai.detection import WasteDetector
 from app.api.errors import ApiError, api_error_handler, request_validation_error_handler
 from app.api.v1.auth import router as auth_router
 from app.api.v1.admin_facilities import router as admin_facilities_router
+from app.api.v1.detect import router as detect_router
 from app.api.v1.admin_knowledge import router as admin_knowledge_router
 from app.api.v1.admin_reports import router as admin_reports_router
 from app.api.v1.categories import router as categories_router
 from app.api.v1.facilities import router as facilities_router
+from app.api.v1.knowledge import router as knowledge_router
 from app.api.v1.maps import router as maps_router
 from app.api.v1.reports import router as reports_router
 from app.api.v1.scans import router as scans_router
@@ -44,11 +46,13 @@ app = FastAPI(
 app.add_exception_handler(ApiError, api_error_handler)
 app.add_exception_handler(RequestValidationError, request_validation_error_handler)
 app.include_router(auth_router)
+app.include_router(detect_router)
 app.include_router(scans_router)
 app.include_router(categories_router)
 app.include_router(facilities_router)
 app.include_router(reports_router)
 app.include_router(maps_router)
+app.include_router(knowledge_router)
 app.include_router(sync_router)
 app.include_router(admin_reports_router)
 app.include_router(admin_facilities_router)

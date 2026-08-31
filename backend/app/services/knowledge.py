@@ -25,8 +25,8 @@ class KnowledgeService:
     def __init__(self, repository: KnowledgeRepository) -> None:
         self.repository = repository
 
-    async def list(self, *, limit: int, offset: int) -> KnowledgeListResponse:
-        records, total = await self.repository.list(limit=limit, offset=offset)
+    async def list(self, *, limit: int, offset: int, active_only: bool = False) -> KnowledgeListResponse:
+        records, total = await self.repository.list(limit=limit, offset=offset, include_inactive=not active_only)
         return KnowledgeListResponse(items=[self._response(item) for item in records], total=total, limit=limit, offset=offset)
 
     async def get(self, record_id: UUID) -> KnowledgeResponse:

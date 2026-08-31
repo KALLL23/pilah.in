@@ -1,33 +1,84 @@
 import 'package:flutter/material.dart';
-import '../result/result_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
+import '../../core/providers/auth_provider.dart';
+import 'confirm_screen.dart';
 
-class AnalyzingScreen extends StatefulWidget {
+class AnalyzingScreen extends ConsumerStatefulWidget {
   final String imagePath;
   const AnalyzingScreen({super.key, required this.imagePath});
 
   @override
-  State<AnalyzingScreen> createState() => _AnalyzingScreenState();
+  ConsumerState<AnalyzingScreen> createState() => _AnalyzingScreenState();
 }
 
-class _AnalyzingScreenState extends State<AnalyzingScreen> {
+class _AnalyzingScreenState extends ConsumerState<AnalyzingScreen> {
   @override
   void initState() {
     super.initState();
-    _simulateAIProcessing();
+    _processImage();
   }
 
-  Future<void> _simulateAIProcessing() async {
-    // Simulasi jeda waktu pemrosesan API (3 detik)
-    await Future.delayed(const Duration(seconds: 3));
-    
-    if (mounted) {
-      // Pindah ke layar hasil dan hapus layar loading dari tumpukan navigasi
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ResultScreen(imagePath: widget.imagePath),
+  Future<void> _processImage() async {
+    final dio = ref.read(dioProvider);
+    final authSession = ref.read(authSessionProvider).value;
+
+    if (authSession == null || !authSession.isAuthenticated || authSession.serverUrl == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Anda belum terhubung ke server.')),
+        );
+        Navigator.of(context).pop();
+      }
+      return;
+    }
+
+    try {
+      final formData = FormData.fromMap({
+        'image': await MultipartFile.fromFile(widget.imagePath),
+      });
+
+      final response = await dio.post(
+        '${authSession.serverUrl}/api/v1/scans/infer',
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer ${authSession.accessToken}',
+          },
         ),
       );
+
+      if (mounted) {
+        final scanData = response.data as Map<String, dynamic>;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => ConfirmScreen(
+              imagePath: widget.imagePath,
+              scanResponse: scanData,
+            ),
+          ),
+        );
+      }
+    } on DioException catch (e) {
+      String errMsg = 'Terjadi kesalahan.';
+      if (e.response != null && e.response?.data != null) {
+        try {
+          errMsg = e.response?.data['error']['message'] ?? errMsg;
+        } catch (_) {}
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menganalisis gambar: $errMsg')),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+        Navigator.of(context).pop();
+      }
     }
   }
 
@@ -42,7 +93,6 @@ class _AnalyzingScreenState extends State<AnalyzingScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Animasi Radar/Scanner sederhana
             Stack(
               alignment: Alignment.center,
               children: [
@@ -50,7 +100,7 @@ class _AnalyzingScreenState extends State<AnalyzingScreen> {
                   width: 120,
                   height: 120,
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(accentGreen.withOpacity(0.5)),
+                    valueColor: AlwaysStoppedAnimation<Color>(accentGreen.withValues(alpha: 0.5)),
                     strokeWidth: 8,
                   ),
                 ),
@@ -67,7 +117,7 @@ class _AnalyzingScreenState extends State<AnalyzingScreen> {
             ),
             const SizedBox(height: 32),
             const Text(
-              'Analyzing Item',
+              'Menganalisis Sampah',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -80,7 +130,7 @@ class _AnalyzingScreenState extends State<AnalyzingScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
@@ -88,7 +138,7 @@ class _AnalyzingScreenState extends State<AnalyzingScreen> {
                   Icon(Icons.sync, color: accentGreen, size: 16),
                   SizedBox(width: 8),
                   Text(
-                    'AI is analyzing material\nand circularity...',
+                    'AI sedang mengenali jenis\nsampah...',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.black54),
                   ),

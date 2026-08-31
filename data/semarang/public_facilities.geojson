@@ -1,0 +1,187 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pasar Johar",
+        "facility_kind": "market"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          110.424762,
+          -6.9721147
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pasar Semawis",
+        "facility_kind": "market"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          110.427953,
+          -6.974741
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pasar Poncol",
+        "facility_kind": "market"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          110.431,
+          -6.958
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pasar Kangkung",
+        "facility_kind": "market"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          110.422,
+          -6.973
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pasar Peterongan",
+        "facility_kind": "market"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          110.405,
+          -6.975
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Stasiun Semarang Tawang",
+        "facility_kind": "transportation"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          110.4299,
+          -6.9653
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Stasiun Semarang Poncol",
+        "facility_kind": "transportation"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          110.432,
+          -6.957
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Terminal Mangkang",
+        "facility_kind": "transportation"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          110.2897221,
+          -6.9685631
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Balai Kota Semarang",
+        "facility_kind": "government"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          110.4203,
+          -6.9695
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Dinas PU Kota Semarang",
+        "facility_kind": "government"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          110.3974,
+          -6.9887
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Simpang Lima Semarang",
+        "facility_kind": "public_gathering"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          110.422,
+          -6.97
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Lawang Sewu",
+        "facility_kind": "public_gathering"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          110.425,
+          -6.967
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "TPA Jatibarang",
+        "facility_kind": "waste_facility"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          110.3597611,
+          -7.0246305
+        ]
+      }
+    }
+  ]
+}

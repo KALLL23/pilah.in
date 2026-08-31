@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../data/auth_repository.dart';
 
@@ -24,6 +25,122 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  String? _normalizeServerUrl(String value) {
+    final normalized = value.trim().replaceFirst(RegExp(r'/+$'), '');
+    final uri = Uri.tryParse(normalized);
+    if (uri == null ||
+        !{'http', 'https'}.contains(uri.scheme) ||
+        uri.host.isEmpty) {
+      return null;
+    }
+    return normalized;
+  }
+
+  void _showServerConfig() {
+    final urlController = TextEditingController(
+      text: AppConfig.defaultServerUrl,
+    );
+    bool isLoading = false;
+    String statusMessage = '';
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> testConnection() async {
+              setDialogState(() {
+                isLoading = true;
+                statusMessage = 'Menghubungkan...';
+              });
+
+              final dio = ref.read(dioProvider);
+              final serverUrl = _normalizeServerUrl(urlController.text);
+              if (serverUrl == null) {
+                setDialogState(() {
+                  isLoading = false;
+                  statusMessage = 'URL tidak valid.';
+                });
+                return;
+              }
+
+              try {
+                final response = await dio.get('$serverUrl/api/health');
+                if (response.statusCode == 200) {
+                  await ref
+                      .read(authSessionProvider.notifier)
+                      .configureServer(serverUrl);
+                  if (!context.mounted) return;
+                  setDialogState(() {
+                    statusMessage = 'Koneksi berhasil!';
+                    isLoading = false;
+                  });
+                }
+              } catch (_) {
+                if (!context.mounted) return;
+                setDialogState(() {
+                  statusMessage =
+                      'Gagal terhubung. Pastikan backend berjalan dan HP di jaringan yang sama.';
+                  isLoading = false;
+                });
+              }
+            }
+
+            return AlertDialog(
+              title: const Text('Konfigurasi Server'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: urlController,
+                    decoration: const InputDecoration(
+                      labelText: 'Server URL',
+                      border: OutlineInputBorder(),
+                      hintText: 'http://192.168.1.9:8000',
+                    ),
+                    keyboardType: TextInputType.url,
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : testConnection,
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Test Connection'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    statusMessage,
+                    style: TextStyle(
+                      color: statusMessage.contains('berhasil')
+                          ? Colors.green
+                          : Colors.red,
+                      fontSize: 13,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Tutup'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _handleLogin() async {
@@ -51,10 +168,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-            child: Column(
+        child: Stack(
+          children: [
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+                child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -156,7 +275,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: IconButton(
+            icon: Icon(Icons.settings, color: Colors.grey.shade600),
+            onPressed: _showServerConfig,
+            tooltip: 'Konfigurasi Server',
+          ),
+        ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

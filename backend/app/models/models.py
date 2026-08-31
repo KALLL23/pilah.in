@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import enum
 import uuid
+from datetime import datetime, timezone
 
 from geoalchemy2 import Geography, Geometry
 from sqlalchemy import (Boolean, CheckConstraint, DateTime, Enum, ForeignKey, Index,
@@ -69,8 +70,15 @@ def enum_type(enum_class: type[enum.Enum], name: str) -> Enum:
 
 
 class TimestampMixin:
-    created_at: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    updated_at: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[object] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(),
+        default=lambda: datetime.now(timezone.utc),
+    )
+    updated_at: Mapped[object] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(),
+        onupdate=func.now(),
+        default=lambda: datetime.now(timezone.utc),
+    )
 
 
 class User(TimestampMixin, Base):
@@ -119,6 +127,7 @@ class WasteScan(TimestampMixin, Base):
     is_wet: Mapped[bool | None] = mapped_column(Boolean)
     recommendation_action: Mapped[WasteAction | None] = mapped_column(enum_type(WasteAction, "waste_action"))
     recommendation_reason: Mapped[str | None] = mapped_column(Text)
+    recycling_target: Mapped[str | None] = mapped_column(Text)
     preparation_steps: Mapped[list | None] = mapped_column(JSONB)
     recommendation_warnings: Mapped[list | None] = mapped_column(JSONB)
     recommendation_status: Mapped[str | None] = mapped_column(String(20))

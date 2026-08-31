@@ -81,9 +81,9 @@ class ReportService:
         longitude: float,
         location_accuracy_m: float | None,
         user_description: str | None,
-        waste_volume: WasteVolume,
-        standing_water: bool,
-        drainage_blockage: bool,
+        waste_volume: WasteVolume | None,
+        standing_water: bool | None,
+        drainage_blockage: bool | None,
     ) -> ReportResponse:
         try:
             spatial_ready = await self.repository.spatial_ready()
@@ -104,6 +104,10 @@ class ReportService:
             detection = await self.detector.predict(image.content)
         except DetectionError as error:
             raise ReportDependencyError from error
+        auto_volume = WasteVolume(detection.estimate_volume())
+        final_volume = waste_volume if waste_volume is not None else auto_volume
+        final_standing = standing_water if standing_water is not None else detection.standing_water_detected
+        final_drainage = drainage_blockage if drainage_blockage is not None else detection.drainage_blockage_detected
         try:
             category_map = await self.repository.category_map([item.category_code for item in detection.objects])
         except SQLAlchemyError as error:
@@ -115,10 +119,10 @@ class ReportService:
         except SQLAlchemyError as error:
             raise ReportDependencyError from error
         risk = calculate_risk(
-            waste_volume=waste_volume,
+            waste_volume=final_volume,
             organic_presence=detection.organic_presence,
-            standing_water=standing_water,
-            drainage_blockage=drainage_blockage,
+            standing_water=final_standing,
+            drainage_blockage=final_drainage,
             location_vulnerability=vulnerability,
             confirmations=0,
         )
@@ -137,9 +141,9 @@ class ReportService:
                 location_accuracy_m=location_accuracy_m,
                 address=address,
                 user_description=user_description.strip() if user_description else None,
-                waste_volume=waste_volume,
-                standing_water=standing_water,
-                drainage_blockage=drainage_blockage,
+                waste_volume=final_volume,
+                standing_water=final_standing,
+                drainage_blockage=final_drainage,
                 organic_presence=detection.organic_presence,
                 location_vulnerability_score=vulnerability,
                 persistence_score=0,

@@ -1,70 +1,104 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/login.dart';
 import '../../features/auth/presentation/register.dart';
-import '../../features/auth/server_config_screen.dart';
 import '../../features/home/home_dashboard.dart';
 import '../../features/main/main_scaffold.dart';
 import '../../features/scan/scan_screen.dart';
+import '../../features/activity/activity_screen.dart';
+import '../../features/admin/admin_screen.dart';
+import '../../features/knowledge/knowledge_screen.dart';
+import '../../features/map/map_screen.dart';
+import '../../features/profile/profile_screen.dart';
+import '../../features/report/report_screen.dart';
 import '../providers/auth_provider.dart';
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
+    );
+
+    _controller.forward();
+
+    Timer(const Duration(seconds: 3), () {
+      if (mounted) context.go('/login');
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
+      backgroundColor: const Color(0xFF1E3F28),
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.eco, size: 56, color: Color(0xFF1E3F28)),
-            SizedBox(height: 16),
-            Text(
-              'pilah.in',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.eco, size: 80, color: Colors.white),
+                SizedBox(height: 20),
+                Text(
+                  'pilah.in',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Pilah Sampah dengan Cerdas',
+                  style: TextStyle(fontSize: 14, color: Colors.white70),
+                ),
+                SizedBox(height: 40),
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  strokeWidth: 2,
+                ),
+              ],
             ),
-            SizedBox(height: 20),
-            CircularProgressIndicator(),
-          ],
+          ),
         ),
       ),
     );
   }
-}
-
-class MapScreen extends StatelessWidget {
-  const MapScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: Text('Map Screen')));
-}
-
-class ActivityScreen extends StatelessWidget {
-  const ActivityScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: Text('Activity Screen')));
-}
-
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: Text('Profile Screen')));
-}
-
-class AdminScreen extends StatelessWidget {
-  const AdminScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: Text('Admin Screen')));
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -83,19 +117,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       return authState.when(
         loading: () => location == '/splash' ? null : '/splash',
-        error: (error, stackTrace) => location == '/setup' ? null : '/setup',
+        error: (error, stackTrace) => location == '/login' ? null : '/login',
         data: (session) {
-          if (!session.hasServer) {
-            return location == '/setup' ? null : '/setup';
-          }
-
           if (!session.isAuthenticated) {
             const publicLocations = {'/login', '/register'};
             return publicLocations.contains(location) ? null : '/login';
           }
 
           if (location == '/splash' ||
-              location == '/setup' ||
               location == '/login' ||
               location == '/register') {
             return '/home';
@@ -112,10 +141,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
-      ),
-      GoRoute(
-        path: '/setup',
-        builder: (context, state) => const ServerConfigScreen(),
       ),
       GoRoute(
         path: '/login',
@@ -179,6 +204,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/knowledge',
+        builder: (context, state) => const KnowledgeScreen(),
+      ),
+      GoRoute(
+        path: '/report',
+        builder: (context, state) => const ReportScreen(),
       ),
     ],
   );

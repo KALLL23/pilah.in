@@ -8,10 +8,15 @@ class PointGeometry(BaseModel):
     coordinates: list[float] = Field(min_length=2, max_length=2)
 
 
+class LineStringGeometry(BaseModel):
+    type: Literal["LineString"] = "LineString"
+    coordinates: list[list[float]] = Field(min_length=2)
+
+
 class GeoJSONFeature(BaseModel):
     type: Literal["Feature"] = "Feature"
     id: str
-    geometry: PointGeometry
+    geometry: PointGeometry | LineStringGeometry
     properties: dict[str, Any]
 
 
