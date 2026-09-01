@@ -60,6 +60,7 @@ class _RecommendScreenState extends ConsumerState<RecommendScreen>
         '${authSession.serverUrl}/api/v1/scans/$scanId/recommend',
         options: Options(
           headers: {'Authorization': 'Bearer ${authSession.accessToken}'},
+          receiveTimeout: const Duration(seconds: 180),
         ),
       );
 

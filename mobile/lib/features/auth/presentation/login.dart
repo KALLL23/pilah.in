@@ -18,13 +18,57 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _demoMode = false;
   final Color _primaryGreen = const Color(0xFF1E3F28);
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDemoMode();
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchDemoMode() async {
+    final dio = ref.read(dioProvider);
+    final authSession = ref.read(authSessionProvider).value;
+    if (authSession == null || !authSession.hasServer) return;
+    try {
+      final response = await dio.get('${authSession.serverUrl}/api/v1/admin/demo-mode');
+      if (mounted) {
+        setState(() => _demoMode = response.data['demo_mode'] == true);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleDemoMode() async {
+    final dio = ref.read(dioProvider);
+    final authSession = ref.read(authSessionProvider).value;
+    if (authSession == null || !authSession.hasServer) return;
+    try {
+      final response = await dio.post('${authSession.serverUrl}/api/v1/admin/demo-mode');
+      if (mounted) {
+        final newMode = response.data['demo_mode'] == true;
+        setState(() => _demoMode = newMode);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(newMode ? 'Demo Mode: ON — Lokasi bisa di mana saja' : 'Demo Mode: OFF — Hanya Semarang'),
+            backgroundColor: newMode ? const Color(0xFF00BFA5) : Colors.orange,
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal mengubah Demo Mode'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   String? _normalizeServerUrl(String value) {
@@ -278,10 +322,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         Positioned(
           top: 8,
           right: 8,
-          child: IconButton(
-            icon: Icon(Icons.settings, color: Colors.grey.shade600),
-            onPressed: _showServerConfig,
-            tooltip: 'Konfigurasi Server',
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: _toggleDemoMode,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _demoMode ? const Color(0xFFE8F5E9) : Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _demoMode ? const Color(0xFF00BFA5) : Colors.grey.shade400,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.science,
+                        size: 14,
+                        color: _demoMode ? const Color(0xFF00BFA5) : Colors.grey,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Demo',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: _demoMode ? const Color(0xFF00BFA5) : Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                icon: Icon(Icons.settings, color: Colors.grey.shade600),
+                onPressed: _showServerConfig,
+                tooltip: 'Konfigurasi Server',
+              ),
+            ],
           ),
         ),
         ],

@@ -84,6 +84,7 @@ class ReportService:
         waste_volume: WasteVolume | None,
         standing_water: bool | None,
         drainage_blockage: bool | None,
+        demo_mode: bool = False,
     ) -> ReportResponse:
         try:
             spatial_ready = await self.repository.spatial_ready()
@@ -93,8 +94,9 @@ class ReportService:
             raise ReportDependencyError
         image = await validate_image_upload(upload, self.settings.max_image_bytes)
         try:
-            if not await self.repository.inside_semarang(latitude, longitude):
-                raise OutsideSemarangError
+            if not demo_mode:
+                if not await self.repository.inside_semarang(latitude, longitude):
+                    raise OutsideSemarangError
             duplicate_id = await self.repository.find_duplicate(latitude, longitude)
             if duplicate_id is not None:
                 raise PossibleDuplicateError(duplicate_id)

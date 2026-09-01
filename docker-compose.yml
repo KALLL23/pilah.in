@@ -44,6 +44,7 @@ services:
       NOMINATIM_BASE_URL: ${NOMINATIM_BASE_URL:-https://nominatim.openstreetmap.org}
       NOMINATIM_USER_AGENT: ${NOMINATIM_USER_AGENT:-pilah.in/1.0}
       NOMINATIM_TIMEOUT_SECONDS: ${NOMINATIM_TIMEOUT_SECONDS:-10}
+      DEMO_MODE: ${DEMO_MODE:-false}
     ports:
       - "${APP_PORT:-8000}:8000"
     depends_on:

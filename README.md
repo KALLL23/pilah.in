@@ -1,48 +1,155 @@
 # pilah.in
 
-pilah.in is a mobile waste-management assistant for Kota Semarang. It combines waste identification, actionable handling recommendations, facility discovery, community reporting, geospatial risk prioritisation, and map-based monitoring.
+**pilah.in** adalah aplikasi mobile pengelolaan sampah untuk Kota Semarang. Aplikasi ini menggabungkan identifikasi sampah, rekomendasi penanganan, pencarian fasilitas, pelaporan komunitas, pemetaan risiko berbasis geospasial, dan pemantauan melalui peta.
 
-The project is under active development. The repository includes the PostgreSQL/PostGIS schema, Docker infrastructure, YOLO classification and detection adapters, the complete `/api/v1` backend contract, and a grounded LLM recommendation engine.
+Proyek ini sedang dalam tahap pengembangan aktif. Repository ini mencakup skema PostgreSQL/PostGIS, infrastruktur Docker, adapter klasifikasi dan deteksi YOLO, kontrak backend `/api/v1` yang lengkap, dan mesin rekomendasi LLM berbasis data pengetahuan.
 
-## Repository layout
+---
+
+## Panduan Cepat untuk Juri
+
+### Yang Dibutuhkan
+
+| Komponen | Keterangan |
+|----------|------------|
+| **Docker Desktop** | Diinstal dan dijalankan di laptop |
+| **HP Android** | Terhubung ke WiFi yang sama dengan laptop |
+| **OpenRouter API Key** | Gratis, daftar di https://openrouter.ai |
+
+### Langkah 1: Menjalankan Backend (Laptop)
+
+1. **Clone repository ini:**
+   ```bash
+   git clone https://github.com/KALLL23/pilah.in.git
+   cd pilah.in
+   ```
+
+2. **Copy file konfigurasi:**
+   ```bash
+   copy .env.example .env
+   ```
+
+3. **Edit file `.env`**, isi nilai berikut (beberapa sudah diisi otomatis):
+   ```
+   ADMIN_EMAIL=admin@pilah.in
+   ADMIN_PASSWORD=admin_password_123
+   JWT_SECRET=isi-dengan-teks-acak-32-karakter
+   MINIO_PUBLIC_ENDPOINT=<IP_LAPTOP_ANDA>:9000
+   LLM_API_KEY=<API_KEY_DARI_OPENROUTER>
+   ```
+   > **Penting:** 
+   > - Ganti `<IP_LAPTOP_ANDA>` dengan IP address laptop Anda. Caranya: buka Command Prompt, ketik `ipconfig`, cari IPv4 Address (biasanya `192.168.x.x`).
+   > - Ganti `<API_KEY_DARI_OPENROUTER>` dengan API key dari langkah berikut.
+
+4. **Dapatkan OpenRouter API Key** (gratis):
+   - Buka https://openrouter.ai
+   - Daftar/login dengan GitHub atau Google
+   - Buka https://openrouter.ai/keys
+   - Klik **Create Key**, beri nama bebas
+   - Copy key-nya (format: `sk-or-v1-...`)
+   - Paste ke file `.env` pada baris `LLM_API_KEY=`
+
+4. **Jalankan Docker Compose:**
+   ```bash
+   docker compose up --build
+   ```
+
+5. **Tunggu** hingga muncul pesan:
+   ```
+   api-1  | {"status":"success","message":"pilah.in API is running."}
+   ```
+
+6. **Verifikasi** backend berjalan dengan membuka browser:
+   ```
+   http://localhost:8000/health
+   ```
+
+### Langkah 2: Menginstall Aplikasi Mobile
+
+#### Cara A: Menggunakan APK yang Sudah Jadi (Disarankan)
+
+1. Copy file `app-debug.apk` dari folder root repository ke HP Anda
+2. Buka file APK di HP
+3. Jika muncul peringatan "Unknown source", pilih **Install Anyway**
+
+#### Cara B: Build dari Source
+
+1. Pastikan Flutter SDK 3.35.x sudah terinstall
+2. Edit file `mobile/lib/core/config/app_config.dart`:
+   ```dart
+   // Ganti IP ini sesuai IP laptop Anda
+   static const String defaultServerUrl = 'http://192.168.1.10:8000';
+   ```
+3. Jalankan perintah berikut:
+   ```bash
+   cd mobile
+   flutter pub get
+   flutter build apk --debug
+   ```
+4. Install APK dari `mobile/build/app/outputs/flutter-apk/app-debug.apk`
+
+### Langkah 3: Menjalankan Aplikasi
+
+1. Buka aplikasi **pilah.in** di HP
+2. **Login** dengan akun:
+   - Email: `admin@pilah.in`
+   - Password: `admin_password_123`
+3. **Aktifkan Demo Mode** — tap tombol di pojok kanan atas layar login
+   > Demo Mode mematikan pengecekan lokasi Semarang, sehingga aplikasi bisa dijalankan dari mana saja.
+4. Gunakan fitur **Scan Waste** untuk mengambil foto sampah
+5. Konfirmasi kategori sampah yang terdeteksi
+6. Tunggu ~60-90 detik untuk mendapatkan rekomendasi daur ulang dari AI
+
+### Catatan Penting
+
+- **Laptop dan HP harus di WiFi yang sama** agar bisa terhubung
+- **Firewall laptop** harus mengizinkan port `8000` dan `9000`
+- **Rekomendasi AI** membutuhkan waktu ~60-90 detik karena menggunakan model gratis
+- **Demo Mode** harus aktif jika menjalankan dari luar Semarang
+- Jika ada masalah koneksi, pastikan IP di `app_config.dart` dan `.env` sudah benar
+
+---
+
+## Struktur Repositori
 
 ```text
 pilah.in/
-├── mobile/                 # Flutter application
+├── mobile/                 # Aplikasi Flutter
 ├── backend/
-│   ├── app/                # FastAPI application modules
-│   ├── ai/                 # LLM, YOLO classification, and YOLO detection
-│   ├── tests/              # Backend tests
-│   └── requirements.txt    # Backend runtime dependencies
+│   ├── app/                # Modul aplikasi FastAPI
+│   ├── ai/                 # LLM, YOLO klasifikasi, dan YOLO deteksi
+│   ├── tests/              # Test backend
+│   └── requirements.txt    # Dependensi runtime backend
 ├── data/
-│   └── semarang/           # Versioned Semarang seed data
-├── models/                 # YOLO weights (tracked with Git LFS when added)
-├── .env.example            # Configuration template; never commit .env
+│   └── semarang/           # Data seed Semarang
+├── models/                 # Bobot YOLO
+├── .env.example            # Template konfigurasi; jangan commit .env
+├── app-debug.apk           # APK yang sudah jadi untuk install langsung
 └── README.md
 ```
 
-## Planned architecture
+## Arsitektur
 
-- **Mobile:** Flutter, Riverpod, go_router, Dio, MapLibre.
-- **Backend:** FastAPI monolith with PostgreSQL/PostGIS and MinIO.
-- **AI:** two local YOLO models—classification for Scan Waste and object detection for Report Waste.
-- **Recommendation:** an external OpenAI-compatible LLM API, grounded only in verified waste knowledge and facility data.
-- **Deployment:** Docker Compose on a laptop/PC; the Flutter app connects over the local network.
+- **Mobile:** Flutter, Riverpod, go_router, Dio, Google Maps.
+- **Backend:** FastAPI monolitik dengan PostgreSQL/PostGIS dan MinIO.
+- **AI:** dua model YOLO lokal — klasifikasi untuk Scan Waste dan deteksi objek untuk Report Waste.
+- **Rekomendasi:** API LLM eksternal kompatibel OpenAI, hanya menggunakan data pengetahuan sampah dan fasilitas yang terverifikasi.
+- **Deployment:** Docker Compose di laptop/PC; aplikasi Flutter terhubung melalui jaringan lokal.
 
-The operational scope is Kota Semarang, Jawa Tengah, Indonesia.
+Cakupan operasional adalah Kota Semarang, Jawa Tengah, Indonesia.
 
-## AI training
+## Training AI
 
-All AI code is grouped under `backend/ai`: `llm`, `yolo_classification`, and `yolo_detection`. Both YOLO pipelines run from the repository root with one command:
+Semua kode AI terkelompok di `backend/ai`: `llm`, `yolo_classification`, dan `yolo_detection`. Kedua pipeline YOLO dapat dijalankan dari root repository dengan satu perintah:
 
 ```powershell
 python -m backend.ai.yolo_classification.src.pipeline --config backend/ai/yolo_classification/configs/pilah_cls_v0.1.yaml
 python -m backend.ai.yolo_detection.src.pipeline --config backend/ai/yolo_detection/configs/pilah_det_v0.1.yaml
 ```
 
-The detection pipeline reads `backend/ai/raw_data/SynWasteNet`, maps its ten source labels into the backend's eight-category contract, and trains `yolo26n.pt`. See `backend/ai/README.md` for the workspace overview and each pipeline README for setup and safe re-run options.
+Pipeline deteksi membaca `backend/ai/raw_data/SynWasteNet`, memetakan sepuluh label sumber ke kategori delapan backend, dan melatih `yolo26n.pt`. Lihat `backend/ai/README.md` untuk gambaran ruang kerja dan README pipeline masing-masing untuk pengaturan dan opsi safe re-run.
 
-## Current local commands
+## Perintah Lokal
 
 ### Mobile
 
@@ -52,18 +159,18 @@ flutter pub get
 flutter run
 ```
 
-### Full local stack
+### Full Local Stack
 
-The stack starts PostgreSQL/PostGIS, MinIO, creates the configured object-storage bucket, applies all Alembic migrations, reconciles operational seed files, and then starts the API.
+Stack ini menjalankan PostgreSQL/PostGIS, MinIO, membuat bucket object-storage, menerapkan semua migrasi Alembic, menyesuaikan file seed, dan menjalankan API.
 
 ```bash
 copy .env.example .env
 docker compose up --build
 ```
 
-Local development defaults work without `.env`, but must never be used for a deployed environment.
+Default development lokal berfungsi tanpa `.env`, tetapi tidak boleh digunakan untuk lingkungan produksi.
 
-### Backend without Docker
+### Backend Tanpa Docker
 
 ```bash
 cd backend
@@ -73,7 +180,7 @@ pip install -r requirements-dev.txt
 uvicorn app.main:app --reload
 ```
 
-Set `DATABASE_HOST=localhost` when running migration commands outside Docker:
+Atur `DATABASE_HOST=localhost` saat menjalankan perintah migrasi di luar Docker:
 
 ```bash
 cd backend
@@ -82,15 +189,15 @@ alembic current
 pytest
 ```
 
-Create future schema changes with `alembic revision --autogenerate -m "description"`, review the generated SQL, then apply them with `alembic upgrade head`. Do not use `Base.metadata.create_all()` for application startup.
+Buat perubahan skema masa depan dengan `alembic revision --autogenerate -m "deskripsi"`, tinjau SQL yang dihasilkan, lalu terapkan dengan `alembic upgrade head`. Jangan gunakan `Base.metadata.create_all()` untuk startup aplikasi.
 
-## Database scope
+## Cakupan Database
 
-The initial migration covers identity and refresh tokens, waste scans and grounded recommendations, verified waste knowledge, disposal facilities, community waste reports and their status history, and Semarang geospatial reference layers. It seeds the same eight-category taxonomy used by the AI training pipeline.
+Migrasi awal mencakup identitas dan token refresh, scan sampah dan rekomendasi, pengetahuan sampah terverifikasi, fasilitas pembuangan, laporan sampah komunitas dan riwayat statusnya, serta laporan referensi geospasial Semarang.
 
-PostgreSQL uses `timestamptz` and its session timezone is `Asia/Jakarta` (UTC+7). PostgreSQL still stores instants consistently; API and database output are presented in Western Indonesian Time.
+PostgreSQL menggunakan `timestamptz` dan zona waktunya adalah `Asia/Jakarta` (UTC+7).
 
-The backend provides:
+Backend menyediakan:
 
 ```text
 POST  /api/v1/scans/infer
@@ -113,56 +220,56 @@ GET   /api/v1/sync/report-status
 GET/PATCH/POST/DELETE /api/v1/admin/*
 ```
 
-All endpoints except health, auth, and categories require a JWT. Admin endpoints additionally require the `ADMIN` role. Interactive OpenAPI documentation is available at `/docs` while the API is running.
+Semua endpoint kecuali health, auth, dan categories memerlukan JWT. Endpoint admin juga memerlukan peran `ADMIN`. Dokumentasi OpenAPI interaktif tersedia di `/docs` saat API berjalan.
 
-Inference accepts JPEG, PNG, or WEBP images up to 8 MB. Images are stored in the private MinIO bucket and API responses contain a presigned URL valid for 15 minutes.
+Inference menerima gambar JPEG, PNG, atau WEBP hingga 8 MB. Gambar disimpan di bucket MinIO privat dan respons API berisi presigned URL yang valid selama 15 menit.
 
-## Configuration
+## Konfigurasi
 
-Copy `.env.example` to `.env` before introducing services that require configuration. Fill in secrets only in `.env`; it is ignored by Git.
+Copy `.env.example` menjadi `.env` sebelum menjalankan layanan yang memerlukan konfigurasi. Isi rahasia hanya di `.env`; file ini diabaikan oleh Git.
 
-Set `MINIO_PUBLIC_ENDPOINT` to the laptop's LAN address (for example `192.168.1.10:9000`) when the Flutter application runs on a phone. MinIO uses `MINIO_ENDPOINT=minio:9000` internally, while presigned URLs use the public endpoint.
+Atur `MINIO_PUBLIC_ENDPOINT` ke alamat LAN laptop (contoh `192.168.1.10:9000`) saat aplikasi Flutter dijalankan di HP. MinIO menggunakan `MINIO_ENDPOINT=minio:9000` secara internal, sementara presigned URL menggunakan endpoint publik.
 
-`CLASSIFICATION_MODEL` is used by Scan Waste and `DETECTION_MODEL` by Report Waste. Report creation also requires all four GeoJSON layers under `data/semarang`. `NOMINATIM_BASE_URL`, `NOMINATIM_USER_AGENT`, and `NOMINATIM_TIMEOUT_SECONDS` configure best-effort reverse geocoding; network failure leaves `address` null and does not fail the report.
+`CLASSIFICATION_MODEL` digunakan oleh Scan Waste dan `DETECTION_MODEL` oleh Report Waste. Pembuatan laporan juga memerlukan empat lapisan GeoJSON di `data/semarang`. `NOMINATIM_BASE_URL`, `NOMINATIM_USER_AGENT`, dan `NOMINATIM_TIMEOUT_SECONDS` mengkonfigurasi reverse geocoding terbaik; kegagalan jaringan membuat `address` null dan tidak gagal pada laporan.
 
-## Operational seed and readiness
+## Seed Operasional dan Kesiapan
 
-`data/semarang/waste_knowledge.csv` and `data/semarang/facilities.csv` intentionally contain headers only. Do not promote candidates from `draft/data_draft` until they are verified. Public facility queries only expose active, verified, `PUBLIC` facilities that accept the requested category.
+`data/semarang/waste_knowledge.csv` dan `data/semarang/facilities.csv` secara sengaja hanya berisi header. Jangan promosikan kandidat dari `draft/data_draft` sampai diverifikasi. Kueri fasilitas publik hanya menampilkan fasilitas aktif, terverifikasi, `PUBLIC` yang menerima kategori yang diminta.
 
-The optional spatial files are `city_boundary.geojson`, `waterways.geojson`, `residential.geojson`, and `public_facilities.geojson`. Missing or empty seed files do not fail startup. List and map endpoints return empty successful responses, knowledge recommendation returns `422 KNOWLEDGE_NOT_AVAILABLE` when no fact matches, and `POST /reports` returns `503 SERVER_UNAVAILABLE` without creating a database record or object until the detection model and every spatial layer are ready.
+File spasial opsional adalah `city_boundary.geojson`, `waterways.geojson`, `residential.geojson`, dan `public_facilities.geojson`. File seed yang hilang atau kosong tidak akan membuat startup gagal. Endpoint list dan map mengembalikan respons kosong yang berhasil, rekomendasi pengetahuan mengembalikan `422 KNOWLEDGE_NOT_AVAILABLE` ketika tidak ada fakta yang cocok, dan `POST /reports` mengembalikan `503 SERVER_UNAVAILABLE` tanpa membuat record database atau objek sampai model deteksi dan setiap lapisan spasial siap.
 
-## MinIO setup and verification
+## Setup MinIO dan Verifikasi
 
-Copy the environment template and replace the example LAN address with the laptop's current address:
+Copy template environment dan ganti alamat LAN contoh dengan alamat laptop saat ini:
 
 ```powershell
 copy .env.example .env
-# edit MINIO_PUBLIC_ENDPOINT=<LAPTOP_LAN_IP>:9000
+# edit MINIO_PUBLIC_ENDPOINT=<IP_LAN_LAPTOP>:9000
 docker compose up -d minio minio-init
 ```
 
-The bootstrap creates the `pilahin` bucket idempotently and explicitly keeps anonymous access disabled. The MinIO console is available at `http://localhost:9001`; object API traffic uses port `9000`.
+Bootstrap membuat bucket `pilahin` secara idempoten dan secara eksplisit menjaga akses anonim dinonaktifkan. Konsol MinIO tersedia di `http://localhost:9001`; traffic API object menggunakan port `9000`.
 
-Run the storage smoke test from the host after MinIO is healthy:
+Jalankan storage smoke test dari host setelah MinIO sehat:
 
 ```powershell
 cd backend
 python -m app.scripts.check_minio
 ```
 
-For a non-default forwarded port:
+Untuk port forward non-default:
 
 ```powershell
 python -m app.scripts.check_minio --endpoint localhost:9100 --public-endpoint localhost:9100
 ```
 
-The command verifies bucket readiness, object upload, rejection of unsigned access, presigned download, and cleanup. It never leaves the smoke-test object in the bucket.
+Perintah ini memverifikasi kesiapan bucket, upload objek, penolakan akses unsigned, presigned download, dan cleanup. Perintah ini tidak akan meninggalkan objek smoke-test di bucket.
 
-Flutter must treat `image_url` returned by the API as opaque: do not construct MinIO paths and never put MinIO credentials in the mobile application. When a URL expires, fetch the scan detail again to receive a new URL. The phone and laptop must be on a mutually reachable network, and the laptop firewall must allow ports `8000` and `9000`. Android/iOS development builds must also permit plain HTTP for the configured private-LAN server.
+Flutter harus memperlakukan `image_url` yang dikembalikan oleh API sebagai data mentah: jangan membuat path MinIO dan jangan meletakkan kredensial MinIO di aplikasi mobile. Ketika URL kedaluwarsa, ambil detail scan lagi untuk mendapatkan URL baru. HP dan laptop harus berada di jaringan yang saling dapat diakses, dan firewall laptop harus mengizinkan port `8000` dan `9000`. Build development Android/iOS juga harus mengizinkan HTTP biasa untuk server LAN privat yang dikonfigurasi.
 
-## Authentication
+## Autentikasi
 
-The backend exposes the complete email/password JWT flow:
+Backend menyediakan alur email/password JWT yang lengkap:
 
 ```text
 POST /api/v1/auth/register
@@ -172,6 +279,6 @@ POST /api/v1/auth/logout
 GET  /api/v1/auth/me
 ```
 
-Registration always creates a `USER`; clients cannot submit or select a role. The only supported roles are `USER` and `ADMIN`. The initial `ADMIN` is created idempotently from `ADMIN_EMAIL` and `ADMIN_PASSWORD` during container startup.
+Registrasi selalu membuat `USER`; klien tidak dapat mengirim atau memilih peran. Peran yang didukung hanya `USER` dan `ADMIN`. `ADMIN` awal dibuat secara idempoten dari `ADMIN_EMAIL` dan `ADMIN_PASSWORD` selama startup container.
 
-Set a unique `JWT_SECRET` containing at least 32 characters. Access tokens expire after 30 minutes and refresh tokens after 30 days by default. Refresh tokens are rotated on every refresh, stored only as SHA-256 hashes, and may be revoked through logout. Flutter should keep both tokens in secure storage, use only the access token in the `Authorization: Bearer` header, and replace both stored tokens after a successful refresh.
+Atur `JWT_SECRET` unik yang mengandung minimal 32 karakter. Access token kedaluwarsa setelah 30 menit dan refresh token setelah 30 hari secara default. Refresh token diputar setiap kali refresh, disimpan hanya sebagai hash SHA-256, dan dapat dibatalkan melalui logout. Flutter harus menyimpan kedua token di secure storage, hanya menggunakan access token di header `Authorization: Bearer`, dan mengganti kedua token yang disimpan setelah refresh yang berhasil.

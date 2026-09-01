@@ -75,6 +75,13 @@ class ObjectStorage:
         except (BotoCoreError, ClientError) as error:
             raise StorageError("Image URL generation failed") from error
 
+    def download(self, key: str) -> bytes:
+        try:
+            response = self.client.get_object(Bucket=self.bucket, Key=key)
+            return response["Body"].read()
+        except (BotoCoreError, ClientError) as error:
+            raise StorageError("Image download failed") from error
+
 
 @lru_cache
 def get_object_storage() -> ObjectStorage:

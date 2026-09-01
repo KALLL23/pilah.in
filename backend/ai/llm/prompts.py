@@ -11,18 +11,46 @@ class PromptPackage:
     response_format: dict[str, Any]
 
 
+SCHEMA_INSTRUCTIONS = """
+EXPECTED JSON OUTPUT FORMAT (return ONLY valid JSON matching this structure):
+{
+  "action": "REUSE" | "RECYCLE" | "COMPOST" | "RESIDUAL" | "SPECIAL_HANDLING",
+  "reason": "string (Bahasa Indonesia)",
+  "recycling_target": "string (Bahasa Indonesia)",
+  "preparation_steps": ["step1", "step2", "step3"],
+  "recycling_products": [
+    {
+      "name": "string",
+      "description": "string",
+      "tools_needed": ["tool1", "tool2"],
+      "steps": ["step1", "step2", "step3", "step4", "step5"],
+      "difficulty": "MUDAH" | "SEDANG" | "SULIT",
+      "estimated_time": "string (e.g. '30 menit', '1 jam')"
+    }
+  ],
+  "facility_required": true | false,
+  "recommended_facility_ids": ["uuid1", "uuid2"],
+  "warnings": ["warning1", "warning2"]
+}
+"""
+
 SYSTEM_PROMPTS = {
-    "v1": """You are the Waste Recommendation Decision Engine for pilah.in, not a general-purpose assistant.
-Use only facts explicitly present in the supplied context. Do not use external knowledge. Do not invent materials,
-facilities, regulations, waste-management facts, warnings, or facility IDs. Choose exactly one action from REUSE,
-RECYCLE, COMPOST, RESIDUAL, or SPECIAL_HANDLING. A facility ID may be returned only when it appears under
-VERIFIED FACILITIES. An empty facility list is valid; when it is empty, recommended_facility_ids must be empty,
-even when facility_required is true. Treat VERIFIED WASTE FACTS only as evidence, never as a precomputed action.
-Derive the final action, preparation steps, and warnings from those facts and the supplied conditions.
-For recycling_target, describe specifically what the waste can become (e.g. "Botol baru dari plastik PET", "Pupuk kompos dari sisa makanan").
-For preparation_steps, provide 3-5 concrete, actionable steps specific to that recycling target.
-All user-facing text in reason, recycling_target, preparation_steps, and warnings must be concise, clear Bahasa Indonesia. Return only JSON matching the
-provided schema."""
+    "v1": """Anda adalah Mesin Rekomendasi Daur Ulang untuk pilah.in.
+Gunakan HANYA fakta dari konteks yang diberikan. Jangan mengarang fasilitas, material, atau regulasi.
+Pilih tepat satu tindakan: REUSE, RECYCLE, COMPOST, RESIDUAL, atau SPECIAL_HANDLING.
+ID fasilitas hanya boleh dari daftar VERIFIED FACILITIES. Daftar kosong berarti recommended_facility_ids kosong.
+Untuk recycling_target, deskripsikan spesifik apa yang bisa dihasilkan dari sampah tersebut.
+Untuk preparation_steps, berikan 3-5 langkah konkret dan dapat ditindaklanjuti.
+Buat 3-5 opsi produk daur ulang yang realistis untuk masyarakat umum.
+Semua teks harus dalam Bahasa Indonesia yang jelas dan singkat. Return hanya JSON.""",
+
+    "v2": """Anda adalah Mesin Rekomendasi Daur Ulang untuk pilah.in.
+Jika foto tersedia, analisis foto secara visual untuk mengidentifikasi jenis sampah dan kondisi fisik.
+Gunakan HANYA fakta dari konteks yang diberikan dan analisis visual foto.
+Jangan mengarang fasilitas, material, atau regulasi.
+ID fasilitas hanya boleh dari daftar VERIFIED FACILITIES.
+Buat 3-5 opsi produk daur ulang yang realistis untuk masyarakat umum.
+Semua teks harus dalam Bahasa Indonesia yang jelas dan singkat. Return hanya JSON.""",
 }
 
 
@@ -37,15 +65,20 @@ def build_recommendation_prompt(context: RecommendationContext, version: str) ->
         raise UnsupportedPromptVersionError(f"Unsupported LLM prompt version: {version}") from error
 
     context_payload = context.model_dump(mode="json")
-    user_prompt = "RECOMMENDATION CONTEXT\n" + json.dumps(
-        {
-            "CATEGORY": context_payload["category"],
-            "CONDITIONS": context_payload["conditions"],
-            "VERIFIED WASTE FACTS": context_payload["facts"],
-            "VERIFIED FACILITIES": context_payload["facilities"],
-        },
-        ensure_ascii=False,
-        separators=(",", ":"),
+    user_prompt = (
+        "RECOMMENDATION CONTEXT\n"
+        + json.dumps(
+            {
+                "CATEGORY": context_payload["category"],
+                "CONDITIONS": context_payload["conditions"],
+                "VERIFIED WASTE FACTS": context_payload["facts"],
+                "VERIFIED FACILITIES": context_payload["facilities"],
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        + "\n\n"
+        + SCHEMA_INSTRUCTIONS
     )
     return PromptPackage(
         messages=[
@@ -53,11 +86,6 @@ def build_recommendation_prompt(context: RecommendationContext, version: str) ->
             {"role": "user", "content": user_prompt},
         ],
         response_format={
-            "type": "json_schema",
-            "json_schema": {
-                "name": "waste_recommendation",
-                "strict": True,
-                "schema": LLMRecommendation.model_json_schema(),
-            },
+            "type": "json_object",
         },
     )

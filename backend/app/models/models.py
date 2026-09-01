@@ -131,6 +131,7 @@ class WasteScan(TimestampMixin, Base):
     preparation_steps: Mapped[list | None] = mapped_column(JSONB)
     recommendation_warnings: Mapped[list | None] = mapped_column(JSONB)
     recommendation_status: Mapped[str | None] = mapped_column(String(20))
+    recycling_products: Mapped[list | None] = mapped_column(JSONB)
     llm_model: Mapped[str | None] = mapped_column(String(120))
     prompt_version: Mapped[str | None] = mapped_column(String(40))
     knowledge_ids: Mapped[list | None] = mapped_column(JSONB)

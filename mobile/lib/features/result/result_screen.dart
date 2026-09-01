@@ -22,13 +22,17 @@ class ResultScreen extends ConsumerStatefulWidget {
   ConsumerState<ResultScreen> createState() => _ResultScreenState();
 }
 
-class _ResultScreenState extends ConsumerState<ResultScreen> {
+class _ResultScreenState extends ConsumerState<ResultScreen>
+    with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _facilities = [];
   bool _loadingFacilities = true;
 
   bool _jualExpanded = false;
   bool _daurUlangExpanded = false;
   bool _buangExpanded = false;
+
+  late TabController _productTabController;
+  int _selectedProductIndex = 0;
 
   static const Map<String, String> _categoryPriceRanges = {
     'PLASTIC': 'Rp 2.000 – 5.000/kg',
@@ -44,6 +48,31 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     super.initState();
     _determineExpanded();
     _fetchFacilities();
+
+    final recyclingProducts = _getRecyclingProducts();
+    _productTabController = TabController(
+      length: recyclingProducts.length,
+      vsync: this,
+    );
+    _productTabController.addListener(() {
+      if (!_productTabController.indexIsChanging) {
+        setState(() => _selectedProductIndex = _productTabController.index);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _productTabController.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> _getRecyclingProducts() {
+    final products = widget.recommendation?['recycling_products'];
+    if (products is List) {
+      return products.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
   }
 
   void _determineExpanded() {
@@ -127,6 +156,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     final warnings = (widget.recommendation?['warnings'] as List<dynamic>?)
         ?.map((e) => e.toString())
         .toList();
+    final recyclingProducts = _getRecyclingProducts();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -189,7 +219,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
@@ -229,7 +258,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
 
                     const SizedBox(height: 16),
 
-                    // === JUAL CARD ===
                     _buildExpandableCard(
                       title: 'Jual',
                       subtitle: 'Jual ke bank sampah atau pengumpul',
@@ -241,19 +269,19 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // === DAUR ULANG CARD ===
                     _buildExpandableCard(
                       title: 'Daur Ulang',
-                      subtitle: 'Daur ulang atau kompos',
+                      subtitle: recyclingProducts.isNotEmpty
+                          ? '${recyclingProducts.length} produk rekomendasi'
+                          : 'Daur ulang atau kompos',
                       icon: Icons.recycling,
                       color: const Color(0xFF1565C0),
                       expanded: _daurUlangExpanded,
                       onTap: () => setState(() => _daurUlangExpanded = !_daurUlangExpanded),
-                      child: _buildDaurUlangContent(recyclingTarget, preparationSteps, categoryCode),
+                      child: _buildDaurUlangContent(recyclingTarget, preparationSteps, recyclingProducts, categoryCode),
                     ),
                     const SizedBox(height: 12),
 
-                    // === BUANG CARD ===
                     _buildExpandableCard(
                       title: 'Buang',
                       subtitle: 'Buang ke tempat sampah atau TPS3R',
@@ -264,7 +292,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                       child: _buildBuangContent(categoryCode),
                     ),
 
-                    // Reason
                     if (reason != null && reason.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       Row(
@@ -284,7 +311,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                       ),
                     ],
 
-                    // Warnings
                     if (warnings != null && warnings.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       Container(
@@ -518,13 +544,15 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     );
   }
 
-  Widget _buildDaurUlangContent(String? recyclingTarget, List<String>? steps, String categoryCode) {
-    final target = recyclingTarget ?? _recyclingInfo(categoryCode);
+  Widget _buildDaurUlangContent(String? recyclingTarget, List<String>? steps, List<Map<String, dynamic>> products, String categoryCode) {
+    if (products.isNotEmpty) {
+      return _buildRecyclingProductsTab(products);
+    }
 
+    final target = recyclingTarget ?? _recyclingInfo(categoryCode);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Recycling target info
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(10),
@@ -552,7 +580,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           ),
         ),
 
-        // Preparation steps
         if (steps != null && steps.isNotEmpty) ...[
           const SizedBox(height: 12),
           const Text(
@@ -601,6 +628,200 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     );
   }
 
+  Widget _buildRecyclingProductsTab(List<Map<String, dynamic>> products) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFE3F2FD),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: TabBar(
+            controller: _productTabController,
+            isScrollable: true,
+            labelColor: const Color(0xFF1565C0),
+            unselectedLabelColor: Colors.grey.shade600,
+            labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            unselectedLabelStyle: const TextStyle(fontSize: 12),
+            indicatorColor: const Color(0xFF1565C0),
+            indicatorWeight: 2,
+            dividerColor: Colors.transparent,
+            tabAlignment: TabAlignment.start,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            tabs: products.asMap().entries.map((entry) {
+              final product = entry.value;
+              final name = product['name'] as String? ?? 'Produk ${entry.key + 1}';
+              return Tab(text: name.length > 20 ? '${name.substring(0, 20)}...' : name);
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildProductDetail(products[_selectedProductIndex]),
+      ],
+    );
+  }
+
+  Widget _buildProductDetail(Map<String, dynamic> product) {
+    final name = product['name'] as String? ?? '-';
+    final description = product['description'] as String? ?? '-';
+    final tools = (product['tools_needed'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+    final steps = (product['steps'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+    final difficulty = product['difficulty'] as String? ?? 'SEDANG';
+    final estimatedTime = product['estimated_time'] as String? ?? '-';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE3F2FD),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1565C0),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                description,
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  _buildInfoBadge(
+                    icon: Icons.signal_cellular_alt,
+                    label: difficulty,
+                    color: _difficultyColor(difficulty),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildInfoBadge(
+                    icon: Icons.access_time,
+                    label: estimatedTime,
+                    color: const Color(0xFF1565C0),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        if (tools.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          const Text(
+            'Alat & Bahan:',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: Color(0xFF1565C0),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: tools.map((tool) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8EAF6),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                tool,
+                style: const TextStyle(fontSize: 11, color: Color(0xFF3F51B5)),
+              ),
+            )).toList(),
+          ),
+        ],
+
+        if (steps.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          const Text(
+            'Langkah Pembuatan:',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: Color(0xFF1565C0),
+            ),
+          ),
+          const SizedBox(height: 6),
+          ...steps.asMap().entries.map((entry) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    width: 22,
+                    height: 22,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1565C0),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${entry.key + 1}',
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      entry.value,
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildInfoBadge({required IconData icon, required String label, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _difficultyColor(String difficulty) {
+    switch (difficulty) {
+      case 'MUDAH': return const Color(0xFF4CAF50);
+      case 'SEDANG': return const Color(0xFFFF9800);
+      case 'SULIT': return const Color(0xFFF44336);
+      default: return const Color(0xFFFF9800);
+    }
+  }
+
   Widget _buildBuangContent(String categoryCode) {
     final disposalSteps = _disposalSteps(categoryCode);
     final disposalFacilities = _facilities.where((f) {
@@ -611,7 +832,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Disposal steps
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(10),
@@ -649,7 +869,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           ),
         ),
 
-        // Nearby disposal facilities
         if (!_loadingFacilities && disposalFacilities.isNotEmpty) ...[
           const SizedBox(height: 12),
           const Text(
@@ -803,7 +1022,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         return 'Kaca dapat dilelehkan dan dibentuk ulang menjadi botol, gelas, atau dekorasi baru.';
       case 'METAL':
         return 'Logam dapat dilelehkan dan digunakan kembali untuk membuat produk logam baru.';
-      case 'ORGANIK':
+      case 'ORGANIC':
         return 'Bahan organik dapat dikompos menjadi pupuk alami untuk tanaman.';
       case 'TEXTILE':
         return 'Tekstil dapat dijahit ulang menjadi produk baru atau diolah menjadi kain daur ulang.';

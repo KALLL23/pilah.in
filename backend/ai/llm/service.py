@@ -1,10 +1,16 @@
+import asyncio
+import base64
+import io
 import logging
+import mimetypes
 from typing import Protocol
 from uuid import UUID
 
+from PIL import Image
 from pydantic import ValidationError
 
 from app.core.config import Settings
+from app.services.storage import ObjectStorage
 from ai.llm.client import LLMConfigurationError, LLMError
 from ai.llm.prompts import PromptPackage, UnsupportedPromptVersionError, build_recommendation_prompt
 from ai.llm.repository import RecommendationRepository
@@ -19,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class RecommendationClient(Protocol):
-    async def complete(self, prompt: PromptPackage) -> tuple[str, int]: ...
+    async def complete(self, prompt: PromptPackage, *, image_url: str | None = None) -> tuple[str, int]: ...
 
 
 class ScanNotFoundError(Exception):
@@ -55,10 +61,12 @@ class RecommendationService:
         repository: RecommendationRepository,
         client: RecommendationClient,
         settings: Settings,
+        storage: ObjectStorage | None = None,
     ) -> None:
         self.repository = repository
         self.client = client
         self.settings = settings
+        self.storage = storage
 
     async def recommend(self, scan_id: UUID, user_id: UUID) -> RecommendationResponse:
         owned_scan = await self.repository.get_owned_scan(scan_id, user_id)
@@ -99,9 +107,22 @@ class RecommendationService:
             await self.repository.save_failed(scan)
             raise KnowledgeNotAvailableError
 
+        image_url = None
+        if self.storage is not None:
+            try:
+                image_bytes = await asyncio.to_thread(self.storage.download, scan.image_key)
+                img = Image.open(io.BytesIO(image_bytes))
+                img.thumbnail((512, 512))
+                buf = io.BytesIO()
+                img.save(buf, format="JPEG", quality=80)
+                b64 = base64.b64encode(buf.getvalue()).decode()
+                image_url = f"data:image/jpeg;base64,{b64}"
+            except Exception:
+                logger.warning("Failed to prepare image for scan %s, proceeding without vision", scan_id)
+
         try:
             prompt = build_recommendation_prompt(context, self.settings.llm_prompt_version)
-            content, latency_ms = await self.client.complete(prompt)
+            content, latency_ms = await self.client.complete(prompt, image_url=image_url)
             recommendation = LLMRecommendation.model_validate_json(content)
             validate_facility_recommendations(recommendation, set(facility_ids))
         except LLMConfigurationError as error:
@@ -127,12 +148,15 @@ class RecommendationService:
             logger.warning("Recommendation failed scan_id=%s category=validation", scan_id)
             raise RecommendationGenerationError("validation") from error
 
+        recycling_products = [p.model_dump() for p in recommendation.recycling_products]
+
         await self.repository.save_success(
             scan,
             action=recommendation.action,
             reason=recommendation.reason,
             recycling_target=recommendation.recycling_target,
             preparation_steps=recommendation.preparation_steps,
+            recycling_products=recycling_products,
             warnings=recommendation.warnings,
             latency_ms=latency_ms,
         )
@@ -143,6 +167,7 @@ class RecommendationService:
             reason=recommendation.reason,
             recycling_target=recommendation.recycling_target,
             preparation_steps=recommendation.preparation_steps,
+            recycling_products=recycling_products,
             facility_required=recommendation.facility_required,
             recommended_facility_ids=recommendation.recommended_facility_ids,
             warnings=recommendation.warnings,

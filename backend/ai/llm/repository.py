@@ -116,6 +116,7 @@ class RecommendationRepository:
         scan.recommendation_reason = None
         scan.recycling_target = None
         scan.preparation_steps = None
+        scan.recycling_products = None
         scan.recommendation_warnings = None
         scan.recommendation_status = "PENDING"
         scan.llm_model = llm_model
@@ -133,6 +134,7 @@ class RecommendationRepository:
         reason: str,
         recycling_target: str,
         preparation_steps: list[str],
+        recycling_products: list[dict],
         warnings: list[str],
         latency_ms: int,
     ) -> None:
@@ -140,6 +142,7 @@ class RecommendationRepository:
         scan.recommendation_reason = reason
         scan.recycling_target = recycling_target
         scan.preparation_steps = preparation_steps
+        scan.recycling_products = recycling_products
         scan.recommendation_warnings = warnings
         scan.recommendation_status = "SUCCESS"
         scan.llm_latency_ms = latency_ms
@@ -150,6 +153,7 @@ class RecommendationRepository:
         scan.recommendation_reason = None
         scan.recycling_target = None
         scan.preparation_steps = None
+        scan.recycling_products = None
         scan.recommendation_warnings = None
         scan.recommendation_status = "FAILED"
         scan.llm_latency_ms = latency_ms

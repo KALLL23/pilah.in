@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 from collections.abc import Awaitable, Callable
 from time import perf_counter
 from typing import Any
@@ -10,6 +11,17 @@ from app.core.config import Settings
 from ai.llm.prompts import PromptPackage
 
 logger = logging.getLogger(__name__)
+
+
+_CODE_FENCE_RE = re.compile(r"^```(?:json)?\s*\n(.*?)\n\s*```\s*$", re.DOTALL)
+
+
+def _strip_code_fences(text: str) -> str:
+    text = text.strip()
+    match = _CODE_FENCE_RE.match(text)
+    if match:
+        return match.group(1).strip()
+    return text
 
 
 class LLMError(Exception):
@@ -49,12 +61,26 @@ class OpenRouterClient:
         if self.settings.llm_model is None or not self.settings.llm_model.strip():
             raise LLMConfigurationError("LLM_MODEL is required")
 
-    async def complete(self, prompt: PromptPackage) -> tuple[str, int]:
+    async def complete(self, prompt: PromptPackage, *, image_url: str | None = None) -> tuple[str, int]:
         self.validate_configuration()
         started_at = perf_counter()
+
+        messages = []
+        for msg in prompt.messages:
+            if msg["role"] == "user" and image_url:
+                messages.append({
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": msg["content"]},
+                        {"type": "image_url", "image_url": {"url": image_url}},
+                    ],
+                })
+            else:
+                messages.append(msg)
+
         payload = {
             "model": self.settings.llm_model,
-            "messages": prompt.messages,
+            "messages": messages,
             "temperature": self.settings.llm_temperature,
             "response_format": prompt.response_format,
         }
@@ -122,12 +148,13 @@ class OpenRouterClient:
 
             if response.status_code >= 400:
                 logger.warning(
-                    "LLM non-retryable response model=%s prompt_version=%s attempt=%s status=%s latency_ms=%s",
+                    "LLM non-retryable response model=%s prompt_version=%s attempt=%s status=%s latency_ms=%s body=%s",
                     self.settings.llm_model,
                     self.settings.llm_prompt_version,
                     attempt,
                     response.status_code,
                     latency_ms,
+                    response.text[:500],
                 )
                 raise LLMProviderError(
                     "LLM request was rejected",
@@ -142,6 +169,8 @@ class OpenRouterClient:
                 raise LLMResponseError("Invalid LLM provider response envelope", latency_ms=latency_ms) from error
             if not isinstance(content, str) or not content.strip():
                 raise LLMResponseError("LLM response content is empty or invalid", latency_ms=latency_ms)
+
+            content = _strip_code_fences(content)
 
             logger.info(
                 "LLM request complete model=%s prompt_version=%s attempt=%s status=%s latency_ms=%s",

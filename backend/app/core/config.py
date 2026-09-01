@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     detection_model_version: str = Field(default="PILAH-DET-v0.1.0", min_length=1, max_length=80)
     detection_confidence_threshold: float = Field(default=0.25, ge=0, le=1)
     seed_data_dir: Path = Path("../data/semarang")
+    demo_mode: bool = False
     model_confidence_threshold: float = Field(default=0.70, ge=0, le=1)
     max_image_bytes: int = Field(default=8 * 1024 * 1024, ge=1)
     nominatim_base_url: AnyHttpUrl = AnyHttpUrl("https://nominatim.openstreetmap.org")
@@ -45,7 +46,7 @@ class Settings(BaseSettings):
     llm_timeout_seconds: float = Field(default=30, gt=0)
     llm_max_retries: int = Field(default=2, ge=0, le=5)
     llm_temperature: float = Field(default=0.2, ge=0, le=2)
-    llm_prompt_version: str = Field(default="v1", min_length=1, max_length=40)
+    llm_prompt_version: str = Field(default="v2", min_length=1, max_length=40)
 
     @field_validator(
         "jwt_secret",

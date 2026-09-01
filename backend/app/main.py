@@ -9,6 +9,7 @@ from app.ai.detection import WasteDetector
 from app.api.errors import ApiError, api_error_handler, request_validation_error_handler
 from app.api.v1.auth import router as auth_router
 from app.api.v1.admin_facilities import router as admin_facilities_router
+from app.api.v1.admin_demo import router as admin_demo_router
 from app.api.v1.detect import router as detect_router
 from app.api.v1.admin_knowledge import router as admin_knowledge_router
 from app.api.v1.admin_reports import router as admin_reports_router
@@ -34,6 +35,7 @@ async def lifespan(application: FastAPI):
     # Detection stays lazy so a missing report model does not prevent startup.
     application.state.waste_detector = WasteDetector(settings)
     application.state.object_storage = storage
+    application.state.demo_mode = settings.demo_mode
     yield
 
 
@@ -56,6 +58,7 @@ app.include_router(knowledge_router)
 app.include_router(sync_router)
 app.include_router(admin_reports_router)
 app.include_router(admin_facilities_router)
+app.include_router(admin_demo_router)
 app.include_router(admin_knowledge_router)
 
 app.add_middleware(

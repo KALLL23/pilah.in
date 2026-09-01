@@ -70,6 +70,7 @@ def raise_report_error(error: Exception) -> None:
 
 @router.post("", response_model=ReportResponse, status_code=201)
 async def create_report(
+    request: Request,
     image: UploadFile = File(...),
     latitude: float = Form(ge=-90, le=90),
     longitude: float = Form(ge=-180, le=180),
@@ -92,6 +93,7 @@ async def create_report(
             waste_volume=waste_volume,
             standing_water=standing_water,
             drainage_blockage=drainage_blockage,
+            demo_mode=bool(getattr(request.app.state, "demo_mode", False)),
         )
     except (
         ImageValidationError,

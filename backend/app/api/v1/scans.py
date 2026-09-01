@@ -38,13 +38,16 @@ def get_scan_service(
 
 
 def get_recommendation_service(
+    request: Request,
     session: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> RecommendationService:
+    storage: ObjectStorage = getattr(request.app.state, "object_storage", get_object_storage())
     return RecommendationService(
         RecommendationRepository(session),
         OpenRouterClient(settings),
         settings,
+        storage=storage,
     )
 
 

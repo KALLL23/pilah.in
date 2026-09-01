@@ -19,6 +19,7 @@ WasteCategoryCode = Literal[
 ]
 UserText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)]
 UserListItem = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+DifficultyLevel = Literal["MUDAH", "SEDANG", "SULIT"]
 
 
 class RecommendationConditions(BaseModel):
@@ -56,6 +57,17 @@ class RecommendationContext(BaseModel):
     facilities: list[FacilityContextItem]
 
 
+class RecyclingProduct(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: UserText
+    description: UserText
+    tools_needed: list[UserListItem]
+    steps: list[UserListItem]
+    difficulty: DifficultyLevel
+    estimated_time: UserText
+
+
 class LLMRecommendation(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -63,6 +75,7 @@ class LLMRecommendation(BaseModel):
     reason: UserText
     recycling_target: UserText
     preparation_steps: list[UserListItem]
+    recycling_products: list[RecyclingProduct]
     facility_required: StrictBool
     recommended_facility_ids: list[UUID]
     warnings: list[UserListItem]
@@ -75,6 +88,7 @@ class RecommendationResponse(BaseModel):
     reason: str
     recycling_target: str
     preparation_steps: list[str]
+    recycling_products: list[dict]
     facility_required: bool
     recommended_facility_ids: list[UUID]
     warnings: list[str]
