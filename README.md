@@ -1,112 +1,87 @@
 # pilah.in
 
-**pilah.in** adalah aplikasi mobile pengelolaan sampah untuk Kota Semarang. Aplikasi ini menggabungkan identifikasi sampah, rekomendasi penanganan, pencarian fasilitas, pelaporan komunitas, pemetaan risiko berbasis geospasial, dan pemantauan melalui peta.
+pilah.in adalah aplikasi pengelolaan sampah untuk Kota Semarang. Pengguna dapat memindai jenis sampah, melihat saran penanganan, mencari fasilitas terdekat, dan membuat laporan sampah di lingkungan sekitar.
 
-Proyek ini sedang dalam tahap pengembangan aktif. Repository ini mencakup skema PostgreSQL/PostGIS, infrastruktur Docker, adapter klasifikasi dan deteksi YOLO, kontrak backend `/api/v1` yang lengkap, dan mesin rekomendasi LLM berbasis data pengetahuan.
+Repository ini berisi aplikasi Flutter, API FastAPI, database PostgreSQL/PostGIS, serta model YOLO untuk klasifikasi dan deteksi sampah.
 
 ---
 
-## Panduan Cepat untuk Juri
+## Instalasi
 
-### Yang Dibutuhkan
+### Prasyarat
 
-| Komponen | Keterangan |
-|----------|------------|
-| **Docker Desktop** | Diinstal dan dijalankan di laptop |
-| **HP Android** | Terhubung ke WiFi yang sama dengan laptop |
-| **OpenRouter API Key** | Gratis, daftar di https://openrouter.ai |
+Siapkan [Git](https://git-scm.com/), [Docker Desktop](https://www.docker.com/products/docker-desktop/), Flutter SDK yang mendukung Dart 3.9, serta perangkat Android atau emulator. Fitur rekomendasi juga memerlukan API key dari [OpenRouter](https://openrouter.ai/keys).
 
-### Langkah 1: Menjalankan Backend (Laptop)
+Jika aplikasi dijalankan di HP fisik, pastikan HP dan komputer terhubung ke jaringan yang sama.
 
-1. **Clone repository ini:**
-   ```bash
-   git clone https://github.com/KALLL23/pilah.in.git
-   cd pilah.in
-   ```
+### Menjalankan backend
 
-2. **Copy file konfigurasi:**
-   ```bash
-   copy .env.example .env
-   ```
+Clone repository, lalu masuk ke direktori proyek:
 
-3. **Edit file `.env`**, isi nilai berikut (beberapa sudah diisi otomatis):
-   ```
-   ADMIN_EMAIL=admin@pilah.in
-   ADMIN_PASSWORD=admin_password_123
-   JWT_SECRET=isi-dengan-teks-acak-32-karakter
-   MINIO_PUBLIC_ENDPOINT=<IP_LAPTOP_ANDA>:9000
-   LLM_API_KEY=<API_KEY_DARI_OPENROUTER>
-   ```
-   > **Penting:** 
-   > - Ganti `<IP_LAPTOP_ANDA>` dengan IP address laptop Anda. Caranya: buka Command Prompt, ketik `ipconfig`, cari IPv4 Address (biasanya `192.168.x.x`).
-   > - Ganti `<API_KEY_DARI_OPENROUTER>` dengan API key dari langkah berikut.
+```bash
+git clone https://github.com/KALLL23/pilah.in.git
+cd pilah.in
+```
 
-4. **Dapatkan OpenRouter API Key** (gratis):
-   - Buka https://openrouter.ai
-   - Daftar/login dengan GitHub atau Google
-   - Buka https://openrouter.ai/keys
-   - Klik **Create Key**, beri nama bebas
-   - Copy key-nya (format: `sk-or-v1-...`)
-   - Paste ke file `.env` pada baris `LLM_API_KEY=`
+Salin template konfigurasi menjadi `.env`:
 
-4. **Jalankan Docker Compose:**
-   ```bash
-   docker compose up --build
-   ```
+```powershell
+Copy-Item .env.example .env
+```
 
-5. **Tunggu** hingga muncul pesan:
-   ```
-   api-1  | {"status":"success","message":"pilah.in API is running."}
-   ```
+Untuk macOS atau Linux, gunakan `cp .env.example .env`.
 
-6. **Verifikasi** backend berjalan dengan membuka browser:
-   ```
-   http://localhost:8000/health
-   ```
+Buka `.env`, lalu lengkapi konfigurasi berikut:
 
-### Langkah 2: Menginstall Aplikasi Mobile
+```dotenv
+JWT_SECRET=<teks-acak-minimal-32-karakter>
+ADMIN_EMAIL=<email-admin>
+ADMIN_PASSWORD=<password-admin>
+MINIO_PUBLIC_ENDPOINT=<IP-LAN-komputer>:9000
+LLM_API_KEY=<API-key-OpenRouter>
+```
 
-#### Cara A: Menggunakan APK yang Sudah Jadi (Disarankan)
+Alamat IP LAN dapat dilihat dengan menjalankan `ipconfig` di Windows atau `ifconfig` di macOS dan Linux. `ADMIN_EMAIL` dan `ADMIN_PASSWORD` boleh dikosongkan jika akun admin awal tidak dibutuhkan.
 
-1. Copy file `app-debug.apk` dari folder root repository ke HP Anda
-2. Buka file APK di HP
-3. Jika muncul peringatan "Unknown source", pilih **Install Anyway**
+Jalankan seluruh layanan dengan Docker Compose:
 
-#### Cara B: Build dari Source
+```bash
+docker compose up --build
+```
 
-1. Pastikan Flutter SDK 3.35.x sudah terinstall
-2. Edit file `mobile/lib/core/config/app_config.dart`:
-   ```dart
-   // Ganti IP ini sesuai IP laptop Anda
-   static const String defaultServerUrl = 'http://192.168.1.10:8000';
-   ```
-3. Jalankan perintah berikut:
-   ```bash
-   cd mobile
-   flutter pub get
-   flutter build apk --debug
-   ```
-4. Install APK dari `mobile/build/app/outputs/flutter-apk/app-debug.apk`
+Backend siap digunakan ketika endpoint berikut mengembalikan status sukses:
 
-### Langkah 3: Menjalankan Aplikasi
+```text
+http://localhost:8000/health
+```
 
-1. Buka aplikasi **pilah.in** di HP
-2. **Login** dengan akun:
-   - Email: `admin@pilah.in`
-   - Password: `admin_password_123`
-3. **Aktifkan Demo Mode** — tap tombol di pojok kanan atas layar login
-   > Demo Mode mematikan pengecekan lokasi Semarang, sehingga aplikasi bisa dijalankan dari mana saja.
-4. Gunakan fitur **Scan Waste** untuk mengambil foto sampah
-5. Konfirmasi kategori sampah yang terdeteksi
-6. Tunggu ~60-90 detik untuk mendapatkan rekomendasi daur ulang dari AI
+Dokumentasi API tersedia di `http://localhost:8000/docs`.
 
-### Catatan Penting
+### Menjalankan aplikasi Android
 
-- **Laptop dan HP harus di WiFi yang sama** agar bisa terhubung
-- **Firewall laptop** harus mengizinkan port `8000` dan `9000`
-- **Rekomendasi AI** membutuhkan waktu ~60-90 detik karena menggunakan model gratis
-- **Demo Mode** harus aktif jika menjalankan dari luar Semarang
-- Jika ada masalah koneksi, pastikan IP di `app_config.dart` dan `.env` sudah benar
+Dari direktori root proyek, jalankan:
+
+```bash
+cd mobile
+flutter pub get
+flutter run
+```
+
+Pada halaman login, buka pengaturan server dan masukkan alamat backend menggunakan IP LAN komputer, misalnya:
+
+```text
+http://192.168.1.10:8000
+```
+
+Untuk membuat APK debug:
+
+```bash
+flutter build apk --debug
+```
+
+File hasil build berada di `mobile/build/app/outputs/flutter-apk/app-debug.apk`.
+
+Jika aplikasi tidak dapat terhubung, periksa kembali alamat server dan pastikan firewall mengizinkan koneksi ke port `8000` dan `9000`.
 
 ---
 
@@ -124,7 +99,6 @@ pilah.in/
 │   └── semarang/           # Data seed Semarang
 ├── models/                 # Bobot YOLO
 ├── .env.example            # Template konfigurasi; jangan commit .env
-├── app-debug.apk           # APK yang sudah jadi untuk install langsung
 └── README.md
 ```
 
